@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">The Memory Game</string>
+    <string name="app_logo">App Logo</string>
+    <string name="login_subtitle">Flip cards, challenge your memory</string>
+    <string name="hint_username">Username</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_login_loading">Logging in…</string>
+    <string name="login_hint">Test accounts:\ntestuser / password123\npaiduser / password123</string>
+    <string name="app_version">Version 1.0.0</string>
+
+    <!-- Error messages -->
+    <string name="error_network">Network connection failed, please check your network</string>
+    <string name="error_server">Server error, please try again later</string>
+    <string name="error_auth">Invalid username or password</string>
+    <string name="error_empty_username">Please enter username</string>
+    <string name="error_empty_password">Please enter password</string>
 </resources>
