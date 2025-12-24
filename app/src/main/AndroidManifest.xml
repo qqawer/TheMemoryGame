@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Network permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <application
         android:allowBackup="true"
@@ -12,16 +15,35 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TheMemoryGame">
+        android:theme="@style/Theme.TheMemoryGame"
+        android:usesCleartextTraffic="true">
+
+        <!-- ✅ LoginActivity - App entry point (LAUNCHER) -->
         <activity
-            android:name=".PlayActivity"
-            android:exported="true">
+            android:name=".activities.LoginActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- PlayActivity - Game screen (launched after login) -->
+        <activity
+            android:name=".PlayActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- Add other activities here as needed -->
+        <!-- Example: FetchActivity for image downloading (Member 3) -->
+        <!--
+        <activity
+            android:name=".FetchActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        -->
+
     </application>
 
 </manifest>
