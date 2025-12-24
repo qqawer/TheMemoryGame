@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Login Activity Layout - English Version
+    
+    Modifications:
+    1. ✅ Added back button (top left)
+    
+    File path:
+    app/src/main/res/layout/activity_login.xml
+-->
 <androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -9,6 +18,21 @@
     android:padding="24dp"
     tools:context=".activities.LoginActivity">
 
+    <!-- ✅ New: Back button -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_arrow_back"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/btn_back"
+        android:padding="12dp"
+        app:tint="#2196F3"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="0dp"/>
+
     <!-- Logo/Title -->
     <ImageView
         android:id="@+id/ivLogo"
@@ -16,10 +40,10 @@
         android:layout_height="120dp"
         android:src="@android:drawable/ic_menu_camera"
         android:contentDescription="@string/app_logo"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="60dp"
+        android:layout_marginTop="20dp"
         app:tint="#2196F3"/>
 
     <TextView

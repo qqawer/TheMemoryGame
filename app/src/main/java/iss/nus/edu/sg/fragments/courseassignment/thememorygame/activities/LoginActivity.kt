@@ -1,13 +1,11 @@
 package iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import iss.nus.edu.sg.fragments.courseassignment.thememorygame.PlayActivity
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.R
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.ActivityLoginBinding
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.network.AuthManager
@@ -15,8 +13,15 @@ import iss.nus.edu.sg.fragments.courseassignment.thememorygame.network.LoginResu
 import kotlinx.coroutines.launch
 
 /**
- * Login Activity
- * First screen shown when app starts
+ * Login Activity - English Version
+ * 
+ * Modifications:
+ * 1. ✅ Added back button functionality
+ * 2. ✅ Click back button to return to MainActivity
+ * 3. ✅ After successful login, return to MainActivity (MainActivity will auto-refresh UI)
+ * 
+ * File path:
+ * app/src/main/java/iss/nus/edu/sg/fragments/courseassignment/thememorygame/activities/LoginActivity.kt
  */
 class LoginActivity : AppCompatActivity() {
     
@@ -33,11 +38,9 @@ class LoginActivity : AppCompatActivity() {
         // Initialize AuthManager
         authManager = AuthManager.getInstance(this)
         
-        // Check if already logged in
-        if (authManager.isLoggedIn()) {
-            // Already logged in, navigate directly to game
-            navigateToPlayActivity()
-            return
+        // ✅ New: Setup back button click listener
+        binding.btnBack.setOnClickListener {
+            handleBackPressed()
         }
         
         // Set login button click listener
@@ -45,17 +48,20 @@ class LoginActivity : AppCompatActivity() {
             performLogin()
         }
         
-        // Handle back button press using new API
+        // ✅ Modified: Allow user to return to main screen
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Don't allow going back unless user really wants to exit
-                Toast.makeText(
-                    this@LoginActivity,
-                    "Please login first",
-                    Toast.LENGTH_SHORT
-                ).show()
+                handleBackPressed()
             }
         })
+    }
+    
+    /**
+     * ✅ New: Handle back button press
+     */
+    private fun handleBackPressed() {
+        // Return to main screen directly
+        finish()
     }
     
     /**
@@ -85,28 +91,50 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = authManager.login(username, password)) {
                 is LoginResult.Success -> {
-                    // Login successful
-                    Toast.makeText(
-                        this@LoginActivity,
-                        "Welcome, ${result.username}!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    
-                    // Navigate to game screen
-                    navigateToPlayActivity()
+                    // ✅ Login successful
+                    handleLoginSuccess(result)
                 }
                 
                 is LoginResult.Error -> {
-                    // Login failed, show error message
-                    setLoadingState(false)
-                    Toast.makeText(
-                        this@LoginActivity,
-                        result.message,
-                        Toast.LENGTH_LONG
-                    ).show()
+                    // ❌ Login failed
+                    handleLoginError(result.message)
                 }
             }
         }
+    }
+    
+    /**
+     * ✅ New: Handle login success
+     */
+    private fun handleLoginSuccess(result: LoginResult.Success) {
+        // Show welcome message
+        val userType = if (result.isPaidUser) "VIP User" else "Regular User"
+        Toast.makeText(
+            this,
+            "Welcome back, ${result.username}! ($userType)",
+            Toast.LENGTH_SHORT
+        ).show()
+        
+        // Return to main screen
+        // MainActivity will detect logged-in state in onResume() and auto-update UI
+        finish()
+    }
+    
+    /**
+     * ✅ New: Handle login error
+     */
+    private fun handleLoginError(message: String) {
+        setLoadingState(false)
+        
+        Toast.makeText(
+            this,
+            "Login failed: $message",
+            Toast.LENGTH_LONG
+        ).show()
+        
+        // Clear password field
+        binding.etPassword.text?.clear()
+        binding.etPassword.requestFocus()
     }
     
     /**
@@ -114,6 +142,8 @@ class LoginActivity : AppCompatActivity() {
      */
     private fun setLoadingState(isLoading: Boolean) {
         binding.apply {
+            // ✅ Modified: Disable back button while loading
+            btnBack.isEnabled = !isLoading
             btnLogin.isEnabled = !isLoading
             etUsername.isEnabled = !isLoading
             etPassword.isEnabled = !isLoading
@@ -125,19 +155,5 @@ class LoginActivity : AppCompatActivity() {
                 getString(R.string.btn_login)
             }
         }
-    }
-    
-    /**
-     * Navigate to game screen (PlayActivity)
-     */
-    private fun navigateToPlayActivity() {
-        val intent = Intent(this, PlayActivity::class.java)
-        
-        // Pass user information to game screen
-        intent.putExtra("username", authManager.getUsername())
-        intent.putExtra("isPaidUser", authManager.isPaidUser())
-        
-        startActivity(intent)
-        finish()  // Close login screen to prevent going back
     }
 }
