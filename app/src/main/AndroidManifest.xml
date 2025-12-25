@@ -29,21 +29,17 @@
             </intent-filter>
         </activity>
 
-        <!-- PlayActivity - Game screen (launched after login) -->
+        <!-- PlayActivity - Game screen -->
         <activity
             android:name=".PlayActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
-        <!-- Add other activities here as needed -->
-        <!-- Example: FetchActivity for image downloading (Member 3) -->
-        <!--
+        <!-- FetchActivity - Image downloading screen -->
         <activity
             android:name=".FetchActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
-        -->
-
     </application>
 
 </manifest>

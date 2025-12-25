@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="4dp">
+
+    <ImageView
+            android:id="@+id/ivImage"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:scaleType="centerCrop"
+            android:background="#EEEEEE"/>
+
+    <!-- 选中标记 -->
+    <View
+            android:id="@+id/vOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:background="#80000000"
+            android:visibility="gone"/>
+
+    <TextView
+            android:id="@+id/tvCheckMark"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:background="@android:color/holo_green_dark"
+            android:gravity="center"
+            android:text="✓"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:visibility="gone"/>
+
+</FrameLayout>
