@@ -26,6 +26,11 @@
         android:theme="@style/Theme.TheMemoryGame"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+                android:name=".activities.LeaderboardActivity"
+                android:exported="false"
+                android:label="Leaderboard"
+                android:parentActivityName=".PlayActivity" />
 
         <!-- ✅ MainActivity - Main Menu/Game Main Screen (LAUNCHER - App Entry Point) -->
         <activity
