@@ -27,6 +27,11 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+                android:name=".FetchActivity"
+                android:exported="false"
+                android:label="Download Images"
+                android:screenOrientation="portrait" />
+        <activity
                 android:name=".activities.LeaderboardActivity"
                 android:exported="false"
                 android:label="Leaderboard"

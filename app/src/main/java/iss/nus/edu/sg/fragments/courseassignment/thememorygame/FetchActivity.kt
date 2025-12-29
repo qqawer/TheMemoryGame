@@ -29,7 +29,6 @@ class FetchActivity : AppCompatActivity() {
     private lateinit var btnContinue: Button
     private lateinit var btnBack: Button
     private lateinit var btnConfirmSelection: Button
-    private lateinit var btnHistory: Button
 
     private lateinit var imageAdapter: ImageAdapter
     private var downloadJob: Job? = null
@@ -57,9 +56,6 @@ class FetchActivity : AppCompatActivity() {
         btnContinue = findViewById(R.id.btnContinue)
         btnBack = findViewById(R.id.btnBack)
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
-        btnHistory = Button(this).apply { text = "History" } // Temporary button or add to XML
-        
-        // Actually, let's modify the XML to include a History button properly
     }
 
     private fun setupRecyclerView() {
@@ -101,7 +97,6 @@ class FetchActivity : AppCompatActivity() {
                 db.historyDao().getHistoryByUrl(url)
             }
             if (history != null) {
-                // Restore from history
                 loadFromHistory(history)
             } else {
                 startFetching(url)
@@ -244,7 +239,9 @@ class FetchActivity : AppCompatActivity() {
 
     private fun navigateToPlayActivity() {
         val intent = Intent(this, PlayActivity::class.java)
-        intent.putExtra("IMAGE_URLS", imageAdapter.getSelectedImages().toTypedArray())
+        // ✅ 修正 Key 为 "image_urls"，并使用 ArrayList<String> 以匹配 PlayActivity 的接收逻辑
+        val selectedImages = ArrayList(imageAdapter.getSelectedImages())
+        intent.putStringArrayListExtra("image_urls", selectedImages)
         startActivity(intent)
     }
 
