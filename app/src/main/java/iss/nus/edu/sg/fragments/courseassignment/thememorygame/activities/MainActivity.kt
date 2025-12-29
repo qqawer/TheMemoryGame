@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback  // ✅ 新增这行import
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.R
@@ -55,6 +56,21 @@ class MainActivity : AppCompatActivity() {
         
         // Update UI
         updateUI()
+        
+        // ✅ 新增：处理返回按钮（替代过时的onBackPressed）
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Exit app confirmation
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Exit App")
+                    .setMessage("Are you sure you want to exit?")
+                    .setPositiveButton("Exit") { _, _ ->
+                        finish()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        })
     }
     
     override fun onResume() {
@@ -146,7 +162,7 @@ class MainActivity : AppCompatActivity() {
         btnLogout.visibility = View.VISIBLE
         
         // Start game button text
-        btnStartGame.text = "Start Game"
+        btnStartGame.text = getString(R.string.btn_start_game)
     }
     
     /**
@@ -157,13 +173,13 @@ class MainActivity : AppCompatActivity() {
         layoutUserInfo.visibility = View.GONE
         
         // Show login button
-        btnLoginPrompt.visibility = View.VISIBLE
+        btnLoginPrompt.visibility = View.GONE
         
         // Hide logout button
         btnLogout.visibility = View.GONE
         
         // Start game button text (hints login required)
-        btnStartGame.text = "Start Game (Login Required)"
+        btnStartGame.text = getString(R.string.btn_start_game)
     }
     
     /**
@@ -246,18 +262,6 @@ class MainActivity : AppCompatActivity() {
         // startActivity(intent)
     }
     
-    /**
-     * Handle back button press
-     */
-    override fun onBackPressed() {
-        // Exit app confirmation
-        AlertDialog.Builder(this)
-            .setTitle("Exit App")
-            .setMessage("Are you sure you want to exit?")
-            .setPositiveButton("Exit") { _, _ ->
-                super.onBackPressed()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
+    // ❌ 删除了过时的onBackPressed()方法
+    // 已在onCreate()中使用OnBackPressedCallback替代
 }

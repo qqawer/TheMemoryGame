@@ -27,7 +27,7 @@
     
     <!-- ========== Main Screen ========== -->
     <string name="btn_start_game">Start Game</string>
-    <string name="btn_start_game_login_required">Start Game (Login Required)</string>
+    <string name="btn_start_game_login_required">Start Game</string>
     <string name="btn_leaderboard">Leaderboard</string>
     <string name="btn_logout">Logout</string>
     <string name="vip_badge">VIP</string>
