@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Color Resources - Merged Version
+    
+    Combined from:
+    1. Android Studio default colors (Material Design)
+    2. Custom colors for The Memory Game
+    
+    File path:
+    app/src/main/res/values/colors.xml
+-->
+<resources>
+    
+    <!-- ========== Material Design Default Colors ========== -->
+    <!-- These are Android Studio generated colors for themes -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- ========== Custom Theme Colors ========== -->
+    <!-- Main theme colors for the app -->
+    <color name="primary">#6200EE</color>
+    <color name="primary_dark">#3700B3</color>
+    <color name="accent">#03DAC5</color>
+    
+    <!-- ========== Background Colors ========== -->
+    <color name="background_main">#F5F5F5</color>     <!-- Light gray main background -->
+    
+    <!-- ========== Text Colors ========== -->
+    <color name="text_primary">#212121</color>        <!-- Primary text (dark gray) -->
+    <color name="text_secondary">#757575</color>      <!-- Secondary text (medium gray) -->
+    <color name="title_color">#1976D2</color>         <!-- Title text (blue) -->
+    <color name="subtitle_color">#64B5F6</color>      <!-- Subtitle text (light blue) -->
+    <color name="hint_color">#9E9E9E</color>          <!-- Hint text (gray) -->
+    
+    <!-- ========== VIP Badge Colors ========== -->
+    <color name="vip_gold">#FFD700</color>            <!-- VIP user badge (gold) -->
+    <color name="vip_gold_dark">#FFA000</color>       <!-- VIP badge border (dark gold) -->
+    <color name="free_gray">#9E9E9E</color>           <!-- Regular user badge (gray) -->
+    
+    <!-- ========== Button Colors ========== -->
+    <!-- Primary Button (Blue - Login, Start Game) -->
+    <color name="button_primary">#1976D2</color>
+    <color name="button_primary_pressed">#1565C0</color>
+    
+    <!-- Secondary Button (Green - Leaderboard) -->
+    <color name="button_secondary">#43A047</color>
+    <color name="button_secondary_pressed">#388E3C</color>
+    
+    <!-- Danger Button (Red - Logout) -->
+    <color name="button_danger">#E53935</color>
+    <color name="button_danger_pressed">#C62828</color>
+    
+</resources>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    String Resources - Final Version (Corrected for Actual Database)
+    
+    Test accounts match actual database:
+    - user / 123456 (Regular User, IsPaid=0)
+    - vip / password (VIP User, IsPaid=1)
+    
+    File path:
+    app/src/main/res/values/strings.xml
+-->
+<resources>
+    
+    <!-- ========== App Info ========== -->
+    <string name="app_name">The Memory Game</string>
+    <string name="app_logo">App Logo</string>
+    <string name="app_version">Version 1.0.0</string>
+    
+    <!-- ========== Login Screen ========== -->
+    <string name="login_subtitle">Flip cards, challenge your memory</string>
+    <string name="hint_username">Username</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_login_loading">Logging in...</string>
+    <string name="btn_back">Back</string>
+    <string name="login_hint">Test accounts:\nuser / 123456 (Regular User)\nvip / password (VIP User)</string>
+    
+    <!-- ========== Main Screen ========== -->
+    <string name="btn_start_game">Start Game</string>
+    <string name="btn_start_game_login_required">Start Game</string>
+    <string name="btn_leaderboard">Leaderboard</string>
+    <string name="btn_logout">Logout</string>
+    <string name="vip_badge">VIP</string>
+    <string name="free_badge">Free</string>
+    
+    <!-- ========== Dialogs ========== -->
+    <string name="dialog_login_required_title">Login Required</string>
+    <string name="dialog_login_required_message">You need to login before starting the game. Login now?</string>
+    <string name="dialog_logout_title">Confirm Logout</string>
+    <string name="dialog_logout_message">Are you sure you want to logout?</string>
+    <string name="dialog_exit_title">Exit App</string>
+    <string name="dialog_exit_message">Are you sure you want to exit?</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_exit">Exit</string>
+    
+    <!-- ========== Toast Messages ========== -->
+    <string name="toast_logged_out">Logged out successfully</string>
+    <string name="toast_entering_game">Entering game...</string>
+    <string name="toast_opening_leaderboard">Opening leaderboard...</string>
+    <string name="toast_welcome_regular">Welcome back, %1$s! (Regular User)</string>
+    <string name="toast_welcome_vip">Welcome back, %1$s! (VIP User)</string>
+    <string name="toast_login_failed">Login failed: %1$s</string>
+    
+    <!-- ========== Error Messages ========== -->
+    <string name="error_network">Network connection failed, please check your network</string>
+    <string name="error_server">Server error, please try again later</string>
+    <string name="error_auth">Invalid username or password</string>
+    <string name="error_empty_username">Please enter username</string>
+    <string name="error_empty_password">Please enter password</string>
+    
+</resources>
