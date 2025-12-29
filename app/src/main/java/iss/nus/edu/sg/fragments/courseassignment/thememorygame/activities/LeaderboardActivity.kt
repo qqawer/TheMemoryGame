@@ -37,16 +37,12 @@ class LeaderboardActivity : AppCompatActivity() {
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
 
-        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { goBack() }
+        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = goBack()
+            override fun handleOnBackPressed() = finish()
         })
 
         loadLeaderboard()
-    }
-
-    private fun goBack() {
-        finish()
     }
 
     private fun loadLeaderboard() {
@@ -76,7 +72,7 @@ class LeaderboardActivity : AppCompatActivity() {
                 }
 
                 // 越小越好（更快）
-                adapter.submit(list.sortedBy { it.completionTimeSeconds })
+                adapter.submit(list.sortedBy { it.completeTimeSeconds })
                 rv.visibility = View.VISIBLE
 
             } catch (e: Exception) {
@@ -88,9 +84,14 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * 兼容后端多种返回：
-     * - { data: [ {username, completionTimeSeconds} ] }
-     * - { data: { items:[...] } }
+     * API doc:
+     * GET /Score/leaderboard
+     * {
+     *   code, message,
+     *   data: { items: [{username, completeTimeSeconds, completeAt}], ... }
+     * }
+     *
+     * Also tolerant to: data being an array.
      */
     private fun parseLeaderboard(root: JSONObject): List<LeaderboardRow> {
         val data = root.opt("data") ?: return emptyList()
@@ -98,8 +99,6 @@ class LeaderboardActivity : AppCompatActivity() {
         val arr: JSONArray? = when (data) {
             is JSONArray -> data
             is JSONObject -> data.optJSONArray("items")
-                ?: data.optJSONArray("leaderboard")
-                ?: data.optJSONArray("data")
             else -> null
         }
 
@@ -109,11 +108,9 @@ class LeaderboardActivity : AppCompatActivity() {
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
             val name = o.optString("username", o.optString("userName", "unknown"))
-            val sec = o.optInt(
-                "completionTimeSeconds",
-                o.optInt("completeTimeSeconds", o.optInt("timeSeconds", 0))
-            )
-            out.add(LeaderboardRow(username = name, completionTimeSeconds = sec))
+            val sec = o.optInt("completeTimeSeconds", o.optInt("completionTimeSeconds", 0))
+            val at = o.optString("completeAt", "")
+            out.add(LeaderboardRow(username = name, completeTimeSeconds = sec, completeAt = at))
         }
         return out
     }
