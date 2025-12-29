@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    危险按钮背景（红色）- 用于退出登录按钮
+    
+    文件路径：
+    app/src/main/res/drawable/bg_button_danger.xml
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按下状态 -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/button_danger_pressed" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    
+    <!-- 禁用状态 -->
+    <item android:state_enabled="false">
+        <shape android:shape="rectangle">
+            <solid android:color="#BDBDBD" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    
+    <!-- 正常状态 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/button_danger" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+</selector>
