@@ -3,15 +3,18 @@ package iss.nus.edu.sg.fragments.courseassignment.thememorygame.features.leaderb
 /**
  * Leaderboard row model
  *
- * Backend field: completeTimeSeconds
- * Some UI code may use: completionTimeSeconds
- * -> We support both to avoid breaking any existing code.
+ * Backend: completeTimeSeconds (smaller = better)
+ * Some code may use: completionTimeSeconds
  */
 data class LeaderboardRow(
     val username: String,
     val completeTimeSeconds: Int,
     val completeAt: String = ""
 ) {
-    // Alias for compatibility with other code
+    // Compatibility alias (some code uses this name)
     val completionTimeSeconds: Int get() = completeTimeSeconds
+
+    // Keep adapter API stable (your adapter calls these)
+    fun displayName(): String = if (username.isBlank()) "unknown" else username
+    fun displaySeconds(): Int = completeTimeSeconds
 }
