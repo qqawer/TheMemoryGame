@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
-import iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities.LeaderboardActivity
+import iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities.GameOverActivity
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.ActivityPlayBinding
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.features.ads.AdsLoader
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +20,7 @@ class PlayActivity : AppCompatActivity() {
     private lateinit var memoryCards: MutableList<MemoryCard>
     private lateinit var adapter: MemoryCardAdapter
     private var indexOfSingleSelectedCard: Int? = null
+    private var isChecking = false
 
     private var timerJob: Job? = null
     private var timerSeconds = 0
@@ -36,13 +37,11 @@ class PlayActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = "The Memory Game"
 
-        // ✅ Ads: safe integration (no lifecycleScope, no binding.adContainer access)
-        // If ad views don't exist in activity_play.xml, AdsLoader will just return without doing anything.
         AdsLoader.tryLoadAndShow(this, binding.root)
 
         imageUrls = intent.getStringArrayListExtra("image_urls")
-        if (imageUrls == null) {
-            Toast.makeText(this, "Using temporary image set for testing.", Toast.LENGTH_LONG).show()
+        if (imageUrls == null || imageUrls!!.size < totalPairs) {
+            Toast.makeText(this, "Couldn't fetch enough images. Using default set.", Toast.LENGTH_LONG).show()
             imageUrls = ArrayList(
                 listOf(
                     "https://ss2.bdstatic.com/70cFvXSh_Q1YnxGkpoWK1HF6hhy/it/u=1659552792,3869332496&fm=253&gp=0.jpg",
@@ -66,9 +65,9 @@ class PlayActivity : AppCompatActivity() {
             restartGame()
         }
 
-        // ✅ Open leaderboard (replace "功能待开发")
+        // Back Button: Returns to the FetchActivity
         binding.btnLeaderboard.setOnClickListener {
-            startActivity(Intent(this, LeaderboardActivity::class.java))
+            finish()
         }
     }
 
@@ -77,6 +76,7 @@ class PlayActivity : AppCompatActivity() {
         isTimerStarted = false
         matches = 0
         indexOfSingleSelectedCard = null
+        isChecking = false
         timerSeconds = 0
         binding.tvTimer.text = "00:00:00"
         setupGame()
@@ -112,6 +112,8 @@ class PlayActivity : AppCompatActivity() {
     }
 
     private fun onCardClicked(position: Int) {
+        if (isChecking) return
+
         if (!isTimerStarted) {
             startTimer()
         }
@@ -122,6 +124,7 @@ class PlayActivity : AppCompatActivity() {
         if (indexOfSingleSelectedCard == null) {
             indexOfSingleSelectedCard = position
         } else {
+            isChecking = true
             checkForMatch(indexOfSingleSelectedCard!!, position)
             indexOfSingleSelectedCard = null
         }
@@ -133,6 +136,9 @@ class PlayActivity : AppCompatActivity() {
             memoryCards[position2].isMatched = true
             matches++
             binding.tvMatches.text = "Matches: $matches / $totalPairs"
+            adapter.notifyItemChanged(position1)
+            adapter.notifyItemChanged(position2)
+            isChecking = false
             checkForGameOver()
         } else {
             CoroutineScope(Dispatchers.Main).launch {
@@ -141,6 +147,7 @@ class PlayActivity : AppCompatActivity() {
                 memoryCards[position2].isFaceUp = false
                 adapter.notifyItemChanged(position1)
                 adapter.notifyItemChanged(position2)
+                isChecking = false
             }
         }
     }
@@ -148,7 +155,9 @@ class PlayActivity : AppCompatActivity() {
     private fun checkForGameOver() {
         if (matches == totalPairs) {
             timerJob?.cancel()
-            Toast.makeText(this, "Game Over! Final Time: ${binding.tvTimer.text}", Toast.LENGTH_LONG).show()
+            val intent = Intent(this, GameOverActivity::class.java)
+            startActivity(intent)
+            finish()
         }
     }
 

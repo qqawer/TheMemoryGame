@@ -37,6 +37,12 @@
                 android:label="Leaderboard"
                 android:parentActivityName=".PlayActivity" />
 
+        <activity
+                android:name=".activities.GameOverActivity"
+                android:exported="false"
+                android:screenOrientation="portrait"
+                android:label="Game Over" />
+
         <!-- ✅ MainActivity - Main Menu/Game Main Screen (LAUNCHER - App Entry Point) -->
         <activity
             android:name=".activities.MainActivity"
@@ -68,25 +74,6 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:label="Game" />
-
-        <!-- TODO: Add LeaderboardActivity when Member 5 implements it -->
-        <!--
-        <activity
-            android:name=".activities.LeaderboardActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:label="Leaderboard" />
-        -->
-
-        <!-- TODO: Add other activities as needed by team members -->
-        <!-- Example: FetchActivity for image downloading (Member 3) -->
-        <!--
-        <activity
-            android:name=".activities.FetchActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:label="Download Images" />
-        -->
 
     </application>
 
