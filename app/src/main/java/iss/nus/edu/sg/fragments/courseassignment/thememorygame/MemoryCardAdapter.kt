@@ -1,8 +1,13 @@
-
 package iss.nus.edu.sg.fragments.courseassignment.thememorygame
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.LayerDrawable
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ImageView
+import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.ItemCardBinding
@@ -26,21 +31,48 @@ class MemoryCardAdapter(
     inner class ViewHolder(private val binding: ItemCardBinding) : RecyclerView.ViewHolder(binding.root) {
         init {
             binding.root.setOnClickListener {
-                onCardClicked(adapterPosition)
+                if (adapterPosition != RecyclerView.NO_POSITION && !cards[adapterPosition].isMatched) {
+                    onCardClicked(adapterPosition)
+                }
             }
         }
 
         fun bind(card: MemoryCard) {
-            if (card.isFaceUp) {
+            val cardView = binding.root as CardView
+            // Reset state
+            cardView.setCardBackgroundColor(Color.WHITE)
+            binding.ivCard.scaleType = ImageView.ScaleType.CENTER_CROP
+
+            // When card is matched
+            if (card.isMatched) {
+                // 1. Show the original image
                 if (card.contentSource is String) {
-                    Glide.with(binding.ivCard.context)
-                        .load(card.contentSource)
-                        .into(binding.ivCard)
+                    Glide.with(binding.ivCard.context).load(card.contentSource).into(binding.ivCard)
                 } else {
                     binding.ivCard.setImageResource(card.contentSource as Int)
                 }
-            } else {
-                binding.ivCard.setImageResource(R.drawable.ic_card_back) // Placeholder for card back
+
+                // 2. Create overlay and checkmark drawables
+                val overlay = ColorDrawable(Color.parseColor("#99888888")) // Semi-transparent grey
+                val check = ContextCompat.getDrawable(binding.root.context, R.drawable.ic_check_large)
+                
+                // 3. Combine them in a LayerDrawable and set as foreground
+                val layers = arrayOf(overlay, check)
+                val layerDrawable = LayerDrawable(layers)
+                binding.ivCard.foreground = layerDrawable
+            } 
+            // When card is not matched
+            else {
+                binding.ivCard.foreground = null // Clear the foreground
+                if (card.isFaceUp) {
+                    if (card.contentSource is String) {
+                        Glide.with(binding.ivCard.context).load(card.contentSource).into(binding.ivCard)
+                    } else {
+                        binding.ivCard.setImageResource(card.contentSource as Int)
+                    }
+                } else {
+                    binding.ivCard.setImageResource(R.drawable.ic_card_back)
+                }
             }
         }
     }
