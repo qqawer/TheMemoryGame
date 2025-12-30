@@ -9,15 +9,19 @@ import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.Activ
 class GameOverActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityGameOverBinding
+    private var imageUrls: ArrayList<String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityGameOverBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        imageUrls = intent.getStringArrayListExtra("image_urls")
+
         // 1. Restart Button: Starts a new game
         binding.btnRestart.setOnClickListener {
             val intent = Intent(this, PlayActivity::class.java)
+            intent.putStringArrayListExtra("image_urls", imageUrls)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
             finish()

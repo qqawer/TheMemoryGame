@@ -156,6 +156,7 @@ class PlayActivity : AppCompatActivity() {
         if (matches == totalPairs) {
             timerJob?.cancel()
             val intent = Intent(this, GameOverActivity::class.java)
+            intent.putStringArrayListExtra("image_urls", imageUrls)
             startActivity(intent)
             finish()
         }
