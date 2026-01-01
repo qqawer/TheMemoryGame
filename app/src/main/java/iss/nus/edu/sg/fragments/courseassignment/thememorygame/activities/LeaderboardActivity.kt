@@ -103,10 +103,11 @@ class LeaderboardActivity : AppCompatActivity() {
 
             val localList = ArrayList<LeaderboardRow>()
             if (shouldShowThisRun) {
+                // ✅ 注意：LeaderboardRow 的参数名是 completeTimeSeconds
                 localList.add(
                     LeaderboardRow(
                         username = latestUser,
-                        completionTimeSeconds = latestScore,
+                        completeTimeSeconds = latestScore,
                         completeAt = "(this run)"
                     )
                 )
@@ -209,13 +210,14 @@ class LeaderboardActivity : AppCompatActivity() {
                     addAll(listFromServer)
                 }
 
+                // ✅ 注意：排序字段也是 completeTimeSeconds
                 val finalList = merged
-                    .distinctBy { "${it.username}_${it.completionTimeSeconds}_${it.completeAt}" }
-                    .sortedBy { it.completionTimeSeconds }
+                    .distinctBy { "${it.username}_${it.completeTimeSeconds}_${it.completeAt}" }
+                    .sortedBy { it.completeTimeSeconds }
 
                 val rank = if (shouldShowThisRun) {
                     val idx = finalList.indexOfFirst {
-                        it.username == latestUser && it.completionTimeSeconds == latestScore
+                        it.username == latestUser && it.completeTimeSeconds == latestScore
                     }
                     if (idx >= 0) idx + 1 else null
                 } else null
@@ -283,9 +285,12 @@ class LeaderboardActivity : AppCompatActivity() {
         for (i in 0 until items.length()) {
             val o = items.optJSONObject(i) ?: continue
             val username = o.optString("username", "unknown")
+
+            // ✅ 后端可能用 completeTimeSeconds 或 completionTimeSeconds，兼容两种
             val sec = o.optInt("completeTimeSeconds", o.optInt("completionTimeSeconds", 0))
+
             val at = o.optString("completeAt", "")
-            if (sec > 0) out.add(LeaderboardRow(username, sec, at))
+            if (sec > 0) out.add(LeaderboardRow(username = username, completeTimeSeconds = sec, completeAt = at))
         }
         return out
     }
