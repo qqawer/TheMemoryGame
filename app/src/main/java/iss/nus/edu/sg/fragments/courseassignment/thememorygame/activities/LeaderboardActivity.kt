@@ -35,7 +35,7 @@ class LeaderboardActivity : AppCompatActivity() {
         private const val KEY_LAST_RUN_PENDING = "last_run_pending"
         private const val KEY_BEST_PREFIX = "best_seconds_" // best_seconds_<username>
 
-        // ✅ 这两个必须对外公开，否则 GameOverActivity 访问会报 "it is private"
+        // ✅ 必须是 public const，GameOverActivity 才能传
         const val EXTRA_LATEST_SCORE_SECONDS = "latest_score_seconds"
         const val EXTRA_LATEST_USERNAME = "latest_username"
     }
@@ -61,14 +61,10 @@ class LeaderboardActivity : AppCompatActivity() {
         rv.adapter = adapter
 
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
-
-        // 返回（保险1：代码）
         btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
-        // 防止被遮挡点不到
         btnBack.bringToFront()
         btnBack.translationZ = 100f
 
-        // 返回（保险2：系统 back）
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = finish()
         })
@@ -76,7 +72,6 @@ class LeaderboardActivity : AppCompatActivity() {
         loadLeaderboard()
     }
 
-    // 返回（保险3：XML android:onClick）
     @Suppress("UNUSED_PARAMETER")
     fun onBackClick(view: View) {
         onBackPressedDispatcher.onBackPressed()
@@ -90,7 +85,7 @@ class LeaderboardActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val auth = AuthManager.getInstance(this@LeaderboardActivity)
 
-            // 只在 pending==true 时显示 “This run / Your best”（一次性）
+            // ✅ 只在 pending==true 时显示 header（一次性）
             val pending = prefs.getBoolean(KEY_LAST_RUN_PENDING, false)
 
             val intentScore = intent.getIntExtra(EXTRA_LATEST_SCORE_SECONDS, -1)
@@ -104,98 +99,104 @@ class LeaderboardActivity : AppCompatActivity() {
 
             val shouldShowHeader = pending && latestScore > 0
 
-            // 先把 header 显示出来（不管榜单能不能加载）
+            // ✅ 先显示 header（rank 先占位），就算榜单加载失败也能看到“这次/最好”
             if (shouldShowHeader) {
-                showHeaderThisRunAndBest(latestUser, latestScore)
-                consumeThisRunOnce()
+                showHeader(latestUser, latestScore, rankText = "…")
+                // 不要立刻 consume：如果网络失败你还想再点进来看到一次
+                // 这里等加载成功/失败都显示过后再 consume
             }
 
             try {
-                val tokenRaw = auth.getToken() // 可能为空：AllowAnonymous 也能看榜
-
+                val tokenRaw = auth.getToken() // leaderboard 通常允许匿名
                 val api = ApiService()
 
-                // 后端你贴的 Controller 是 ScoresController => /api/Scores/leaderboard
-                val candidates = listOf(
-                    "/Scores/leaderboard?page=1&size=10",
-                    "/scores/leaderboard?page=1&size=10",
-                    "/Scores/leaderboard",
-                    "/scores/leaderboard",
-
-                    // 兜底（防队友改过命名）
-                    "/Score/leaderboard?page=1&size=10",
-                    "/score/leaderboard?page=1&size=10",
-                    "/Score/leaderboard",
-                    "/score/leaderboard"
-                )
-
-                var chosen: ApiResponse? = null
-                for (ep in candidates) {
-                    val r = withContext(Dispatchers.IO) { api.get(ep, token = tokenRaw) }
-                    when (r) {
-                        is ApiResponse.Success -> { chosen = r; break }
-                        is ApiResponse.Error -> {
-                            if (r.code == 404) continue
-                            chosen = r; break
-                        }
-                        is ApiResponse.Exception -> { chosen = r; break }
-                    }
-                }
+                val endpoint = "/Scores/leaderboard?page=1&size=10"
+                val chosen = withContext(Dispatchers.IO) { api.get(endpoint, token = tokenRaw) }
 
                 pb.visibility = View.GONE
 
                 when (chosen) {
-                    null -> {
-                        // header 可能已显示；这里补一句错误说明
-                        appendStatus("\n\nLeaderboard endpoint not found (404).")
-                        return@launch
-                    }
                     is ApiResponse.Error -> {
                         appendStatus("\n\nLoad failed (HTTP ${chosen.code}).")
                         Log.e(TAG, "HTTP error ${chosen.code}: ${chosen.message}")
+                        if (shouldShowHeader) consumeThisRunOnce()
                         return@launch
                     }
+
                     is ApiResponse.Exception -> {
                         appendStatus("\n\nNetwork error: ${chosen.exception.message}")
                         Log.e(TAG, "Network exception", chosen.exception)
+                        if (shouldShowHeader) consumeThisRunOnce()
                         return@launch
                     }
+
                     is ApiResponse.Success -> {
                         val listFromServer = parseLeaderboardStrict(chosen.data)
                             .sortedBy { it.completeTimeSeconds }
-                            .take(10) // ✅ 只要 Top10
+                            .take(10)
 
                         if (listFromServer.isEmpty()) {
                             appendStatus("\n\nNo scores yet.")
+                            if (shouldShowHeader) {
+                                // 这里 rank 无法算，只显示 N/A
+                                showHeader(latestUser, latestScore, rankText = "N/A")
+                                consumeThisRunOnce()
+                            }
                             return@launch
                         }
 
                         adapter.submit(listFromServer)
                         rv.visibility = View.VISIBLE
+
+                        // ✅ 计算 “这次排名”
+                        if (shouldShowHeader) {
+                            val rankText = computeRankText(latestUser, latestScore, listFromServer)
+                            showHeader(latestUser, latestScore, rankText)
+                            consumeThisRunOnce()
+                        }
                     }
                 }
-
             } catch (e: Exception) {
                 pb.visibility = View.GONE
                 appendStatus("\n\nLoad failed: ${e.message}")
                 Log.e(TAG, "Unexpected error", e)
+                if (shouldShowHeader) consumeThisRunOnce()
             }
         }
     }
 
-    private fun showHeaderThisRunAndBest(username: String, latestScore: Int) {
-        val runText = if (latestScore > 0) formatHMS(latestScore) else "N/A"
+    private fun showHeader(username: String, latestScore: Int, rankText: String) {
+        val runText = formatHMS(latestScore)
 
         val bestKey = KEY_BEST_PREFIX + username
         val best = prefs.getInt(bestKey, Int.MAX_VALUE)
         val bestText = if (best != Int.MAX_VALUE) formatHMS(best) else runText
 
-        tvStatus.text = "This run: $username  $runText\nYour best: $bestText"
+        tvStatus.text =
+            "This run: $username  $runText\nRank: $rankText\nYour best: $bestText"
         tvStatus.visibility = View.VISIBLE
     }
 
+    private fun computeRankText(
+        username: String,
+        latestScore: Int,
+        topList: List<LeaderboardRow>
+    ): String {
+        // 1) 如果提交成功且榜里能找到同名且时间相等的记录，直接用它的名次
+        val exactIdx = topList.indexOfFirst {
+            it.username == username && it.completeTimeSeconds == latestScore
+        }
+        if (exactIdx >= 0) return "#${exactIdx + 1} (on board)"
+
+        // 2) 否则用“插入位置”估算（本地估计，不保证真的在服务器入榜）
+        // 例：如果比 3 个人慢 -> rank = 4
+        val betterCount = topList.count { it.completeTimeSeconds < latestScore }
+        val estimatedRank = betterCount + 1
+
+        return if (estimatedRank <= 10) "#$estimatedRank (estimated)" else ">10 (estimated)"
+    }
+
     private fun appendStatus(extra: String) {
-        // tvStatus 可能已经是 header，追加信息即可
         val base = tvStatus.text?.toString().orEmpty()
         tvStatus.text = if (base.isBlank()) extra.trim() else base + extra
         tvStatus.visibility = View.VISIBLE
@@ -217,7 +218,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * 严格按你后端的返回结构解析：
+     * 严格按后端结构解析：
      * { code, message, data: { items:[{username, completeTimeSeconds, completeAt}] } }
      */
     private fun parseLeaderboardStrict(root: JSONObject): List<LeaderboardRow> {
