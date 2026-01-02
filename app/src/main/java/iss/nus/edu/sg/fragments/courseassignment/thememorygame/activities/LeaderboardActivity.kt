@@ -27,10 +27,17 @@ import org.json.JSONObject
 class LeaderboardActivity : AppCompatActivity() {
 
     companion object {
+        private const val TAG = "Leaderboard"
+
         private const val PREFS_NAME = "MemoryGamePrefs"
         private const val KEY_LAST_SCORE_SECONDS = "last_score_seconds"
         private const val KEY_LAST_USERNAME = "last_score_username"
         private const val KEY_LAST_RUN_PENDING = "last_run_pending"
+        private const val KEY_BEST_PREFIX = "best_seconds_" // best_seconds_<username>
+
+        // ✅ 这两个必须对外公开，否则 GameOverActivity 访问会报 "it is private"
+        const val EXTRA_LATEST_SCORE_SECONDS = "latest_score_seconds"
+        const val EXTRA_LATEST_USERNAME = "latest_username"
     }
 
     private lateinit var rv: RecyclerView
@@ -55,14 +62,13 @@ class LeaderboardActivity : AppCompatActivity() {
 
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
 
-        // ✅ 代码绑定返回
+        // 返回（保险1：代码）
         btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
-
-        // ✅ 防止被覆盖导致点不到
+        // 防止被遮挡点不到
         btnBack.bringToFront()
         btnBack.translationZ = 100f
 
-        // ✅ 系统返回
+        // 返回（保险2：系统 back）
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = finish()
         })
@@ -70,9 +76,7 @@ class LeaderboardActivity : AppCompatActivity() {
         loadLeaderboard()
     }
 
-    /**
-     * ✅ XML android:onClick 用（第三保险）
-     */
+    // 返回（保险3：XML android:onClick）
     @Suppress("UNUSED_PARAMETER")
     fun onBackClick(view: View) {
         onBackPressedDispatcher.onBackPressed()
@@ -80,18 +84,17 @@ class LeaderboardActivity : AppCompatActivity() {
 
     private fun loadLeaderboard() {
         pb.visibility = View.VISIBLE
-        tvStatus.visibility = View.GONE
         rv.visibility = View.GONE
+        tvStatus.visibility = View.GONE
 
         lifecycleScope.launch {
             val auth = AuthManager.getInstance(this@LeaderboardActivity)
 
-            // ✅ 只有 pending==true 才允许显示 This run（一次性）
+            // 只在 pending==true 时显示 “This run / Your best”（一次性）
             val pending = prefs.getBoolean(KEY_LAST_RUN_PENDING, false)
 
-            // Intent 优先，否则 prefs
-            val intentScore = intent.getIntExtra("latest_score_seconds", -1)
-            val intentUser = intent.getStringExtra("latest_username")
+            val intentScore = intent.getIntExtra(EXTRA_LATEST_SCORE_SECONDS, -1)
+            val intentUser = intent.getStringExtra(EXTRA_LATEST_USERNAME)
 
             val savedScore = prefs.getInt(KEY_LAST_SCORE_SECONDS, -1)
             val savedUser = prefs.getString(KEY_LAST_USERNAME, null)
@@ -99,160 +102,103 @@ class LeaderboardActivity : AppCompatActivity() {
             val latestScore = if (intentScore > 0) intentScore else savedScore
             val latestUser = (intentUser ?: savedUser) ?: auth.getUsername() ?: "You"
 
-            val shouldShowThisRun = pending && latestScore > 0
+            val shouldShowHeader = pending && latestScore > 0
 
-            val localList = ArrayList<LeaderboardRow>()
-            if (shouldShowThisRun) {
-                // ✅ 注意：LeaderboardRow 的参数名是 completeTimeSeconds
-                localList.add(
-                    LeaderboardRow(
-                        username = latestUser,
-                        completeTimeSeconds = latestScore,
-                        completeAt = "(this run)"
-                    )
-                )
+            // 先把 header 显示出来（不管榜单能不能加载）
+            if (shouldShowHeader) {
+                showHeaderThisRunAndBest(latestUser, latestScore)
+                consumeThisRunOnce()
             }
 
             try {
-                val tokenRaw = auth.getToken()
-
-                // 未登录：只显示本局一次 或提示登录
-                if (tokenRaw.isNullOrEmpty()) {
-                    pb.visibility = View.GONE
-                    if (localList.isNotEmpty()) {
-                        adapter.submit(localList)
-                        rv.visibility = View.VISIBLE
-                        showRunHeaderAndConsumeOnce(latestUser, latestScore, rank = null)
-                    } else {
-                        tvStatus.text = "Please login first to view leaderboard."
-                        tvStatus.visibility = View.VISIBLE
-                    }
-                    return@launch
-                }
+                val tokenRaw = auth.getToken() // 可能为空：AllowAnonymous 也能看榜
 
                 val api = ApiService()
 
-                // ✅ 容错候选（防大小写/参数名差异）
+                // 后端你贴的 Controller 是 ScoresController => /api/Scores/leaderboard
                 val candidates = listOf(
-                    "/Score/leaderboard?page=1&size=50",
-                    "/score/leaderboard?page=1&size=50",
-                    "/Score/leaderboard?pageNumber=1&pageSize=50",
-                    "/score/leaderboard?pageNumber=1&pageSize=50",
+                    "/Scores/leaderboard?page=1&size=10",
+                    "/scores/leaderboard?page=1&size=10",
+                    "/Scores/leaderboard",
+                    "/scores/leaderboard",
+
+                    // 兜底（防队友改过命名）
+                    "/Score/leaderboard?page=1&size=10",
+                    "/score/leaderboard?page=1&size=10",
                     "/Score/leaderboard",
-                    "/score/leaderboard",
-                    "/scores/leaderboard?page=1&size=50",
-                    "/scores/leaderboard"
+                    "/score/leaderboard"
                 )
 
                 var chosen: ApiResponse? = null
-                var triedAll404 = true
-
                 for (ep in candidates) {
                     val r = withContext(Dispatchers.IO) { api.get(ep, token = tokenRaw) }
                     when (r) {
-                        is ApiResponse.Success -> { chosen = r; triedAll404 = false; break }
+                        is ApiResponse.Success -> { chosen = r; break }
                         is ApiResponse.Error -> {
                             if (r.code == 404) continue
-                            chosen = r; triedAll404 = false; break
+                            chosen = r; break
                         }
-                        is ApiResponse.Exception -> { chosen = r; triedAll404 = false; break }
+                        is ApiResponse.Exception -> { chosen = r; break }
                     }
                 }
 
-                if (chosen == null) {
-                    pb.visibility = View.GONE
-                    tvStatus.text = "Load failed: Unknown error"
-                    tvStatus.visibility = View.VISIBLE
-                    if (shouldShowThisRun) consumeThisRunOnce()
-                    return@launch
-                }
+                pb.visibility = View.GONE
 
-                val listFromServer = when (chosen) {
-                    is ApiResponse.Success -> parseLeaderboardStrict(chosen.data)
+                when (chosen) {
+                    null -> {
+                        // header 可能已显示；这里补一句错误说明
+                        appendStatus("\n\nLeaderboard endpoint not found (404).")
+                        return@launch
+                    }
                     is ApiResponse.Error -> {
-                        pb.visibility = View.GONE
-                        tvStatus.text = if (triedAll404) {
-                            "Load failed (HTTP 404): leaderboard endpoint not found."
-                        } else {
-                            "Load failed (HTTP ${chosen.code}): ${chosen.message}"
-                        }
-                        tvStatus.visibility = View.VISIBLE
-
-                        // 服务端失败也别一直 pending
-                        if (localList.isNotEmpty()) {
-                            adapter.submit(localList)
-                            rv.visibility = View.VISIBLE
-                            showRunHeaderAndConsumeOnce(latestUser, latestScore, rank = null)
-                        } else if (pending) {
-                            consumeThisRunOnce()
-                        }
+                        appendStatus("\n\nLoad failed (HTTP ${chosen.code}).")
+                        Log.e(TAG, "HTTP error ${chosen.code}: ${chosen.message}")
                         return@launch
                     }
                     is ApiResponse.Exception -> {
-                        pb.visibility = View.GONE
-                        tvStatus.text = "Network error: ${chosen.exception.message}"
-                        tvStatus.visibility = View.VISIBLE
-                        Log.e("Leaderboard", "Network exception", chosen.exception)
-
-                        if (localList.isNotEmpty()) {
-                            adapter.submit(localList)
-                            rv.visibility = View.VISIBLE
-                            showRunHeaderAndConsumeOnce(latestUser, latestScore, rank = null)
-                        } else if (pending) {
-                            consumeThisRunOnce()
-                        }
+                        appendStatus("\n\nNetwork error: ${chosen.exception.message}")
+                        Log.e(TAG, "Network exception", chosen.exception)
                         return@launch
                     }
-                }
+                    is ApiResponse.Success -> {
+                        val listFromServer = parseLeaderboardStrict(chosen.data)
+                            .sortedBy { it.completeTimeSeconds }
+                            .take(10) // ✅ 只要 Top10
 
-                val merged = ArrayList<LeaderboardRow>().apply {
-                    addAll(localList)
-                    addAll(listFromServer)
-                }
+                        if (listFromServer.isEmpty()) {
+                            appendStatus("\n\nNo scores yet.")
+                            return@launch
+                        }
 
-                // ✅ 注意：排序字段也是 completeTimeSeconds
-                val finalList = merged
-                    .distinctBy { "${it.username}_${it.completeTimeSeconds}_${it.completeAt}" }
-                    .sortedBy { it.completeTimeSeconds }
-
-                val rank = if (shouldShowThisRun) {
-                    val idx = finalList.indexOfFirst {
-                        it.username == latestUser && it.completeTimeSeconds == latestScore
+                        adapter.submit(listFromServer)
+                        rv.visibility = View.VISIBLE
                     }
-                    if (idx >= 0) idx + 1 else null
-                } else null
-
-                pb.visibility = View.GONE
-                if (finalList.isEmpty()) {
-                    tvStatus.text = "No scores yet."
-                    tvStatus.visibility = View.VISIBLE
-                    if (shouldShowThisRun) consumeThisRunOnce()
-                } else {
-                    adapter.submit(finalList)
-                    rv.visibility = View.VISIBLE
-                    if (shouldShowThisRun) showRunHeaderAndConsumeOnce(latestUser, latestScore, rank)
                 }
 
             } catch (e: Exception) {
                 pb.visibility = View.GONE
-                tvStatus.text = "Load failed: ${e.message}"
-                tvStatus.visibility = View.VISIBLE
-                Log.e("Leaderboard", "Unexpected error", e)
-                if (shouldShowThisRun) consumeThisRunOnce()
+                appendStatus("\n\nLoad failed: ${e.message}")
+                Log.e(TAG, "Unexpected error", e)
             }
         }
     }
 
-    // ✅ 显示一次后立即清理（保证“从此再也不显示”）
-    private fun showRunHeaderAndConsumeOnce(username: String, seconds: Int, rank: Int?) {
-        val timeText = formatHMS(seconds)
-        tvStatus.text = if (rank != null) {
-            "This run: $username  $timeText   (Rank #$rank)"
-        } else {
-            "This run: $username  $timeText"
-        }
+    private fun showHeaderThisRunAndBest(username: String, latestScore: Int) {
+        val runText = if (latestScore > 0) formatHMS(latestScore) else "N/A"
+
+        val bestKey = KEY_BEST_PREFIX + username
+        val best = prefs.getInt(bestKey, Int.MAX_VALUE)
+        val bestText = if (best != Int.MAX_VALUE) formatHMS(best) else runText
+
+        tvStatus.text = "This run: $username  $runText\nYour best: $bestText"
         tvStatus.visibility = View.VISIBLE
-        consumeThisRunOnce()
+    }
+
+    private fun appendStatus(extra: String) {
+        // tvStatus 可能已经是 header，追加信息即可
+        val base = tvStatus.text?.toString().orEmpty()
+        tvStatus.text = if (base.isBlank()) extra.trim() else base + extra
+        tvStatus.visibility = View.VISIBLE
     }
 
     private fun consumeThisRunOnce() {
@@ -271,7 +217,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 严格按 API 文档解析：
+     * 严格按你后端的返回结构解析：
      * { code, message, data: { items:[{username, completeTimeSeconds, completeAt}] } }
      */
     private fun parseLeaderboardStrict(root: JSONObject): List<LeaderboardRow> {
@@ -285,12 +231,9 @@ class LeaderboardActivity : AppCompatActivity() {
         for (i in 0 until items.length()) {
             val o = items.optJSONObject(i) ?: continue
             val username = o.optString("username", "unknown")
-
-            // ✅ 后端可能用 completeTimeSeconds 或 completionTimeSeconds，兼容两种
-            val sec = o.optInt("completeTimeSeconds", o.optInt("completionTimeSeconds", 0))
-
+            val sec = o.optInt("completeTimeSeconds", 0)
             val at = o.optString("completeAt", "")
-            if (sec > 0) out.add(LeaderboardRow(username = username, completeTimeSeconds = sec, completeAt = at))
+            if (sec > 0) out.add(LeaderboardRow(username, sec, at))
         }
         return out
     }
