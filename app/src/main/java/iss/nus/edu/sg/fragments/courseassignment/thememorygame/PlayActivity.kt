@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities.GameOverActivity
+import iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities.LeaderboardActivity
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.ActivityPlayBinding
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.features.ads.AdsLoader
 import kotlinx.coroutines.CoroutineScope
@@ -155,8 +156,14 @@ class PlayActivity : AppCompatActivity() {
     private fun checkForGameOver() {
         if (matches == totalPairs) {
             timerJob?.cancel()
+
             val intent = Intent(this, GameOverActivity::class.java)
             intent.putStringArrayListExtra("image_urls", imageUrls)
+
+            // ✅ 只新增这一段：把本局秒数传给 GameOver（别的逻辑不动）
+            intent.putExtra(LeaderboardActivity.EXTRA_LATEST_SCORE_SECONDS, timerSeconds)
+            intent.putExtra(LeaderboardActivity.EXTRA_FROM_GAMEOVER, true)
+
             startActivity(intent)
             finish()
         }
