@@ -6,10 +6,6 @@ import android.util.Base64
 import android.util.Log
 import org.json.JSONObject
 
-/**
- * Authentication Manager
- * Handles user login, token storage, and user information management
- */
 class AuthManager(context: Context) {
 
     companion object {
@@ -19,36 +15,42 @@ class AuthManager(context: Context) {
         private const val KEY_USERNAME = "username"
         private const val KEY_IS_PAID_USER = "is_paid_user"
 
-        // Singleton instance
         @Volatile
         private var instance: AuthManager? = null
 
         fun getInstance(context: Context): AuthManager {
             return instance ?: synchronized(this) {
-                instance ?: AuthManager(context.applicationContext).also {
-                    instance = it
-                }
+                instance ?: AuthManager(context.applicationContext).also { instance = it }
             }
         }
     }
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     private val apiService = ApiService()
 
-    /**
-     * User login
-     * @param username Username
-     * @param password Password
-     * @return LoginResult
-     */
+    // =========================
+    // Public getters
+    // =========================
+    fun getToken(): String? = prefs.getString(KEY_TOKEN, null)?.trim()
+    fun getUsername(): String? = prefs.getString(KEY_USERNAME, null)
+    fun isPaidUser(): Boolean = prefs.getBoolean(KEY_IS_PAID_USER, false)
+    fun isLoggedIn(): Boolean = !getToken().isNullOrEmpty()
+
+    fun logout() {
+        prefs.edit().clear().apply()
+        Log.d(TAG, "User logged out")
+    }
+
+    // =========================
+    // Login
+    // =========================
     suspend fun login(username: String, password: String): LoginResult {
-        // Validate input
         if (username.isBlank() || password.isBlank()) {
             return LoginResult.Error("Username and password cannot be empty")
         }
 
-        // Build request body
         val requestBody = JSONObject().apply {
             put("username", username)
             put("password", password)
@@ -56,13 +58,10 @@ class AuthManager(context: Context) {
 
         Log.d(TAG, "Attempting login for user: $username")
 
-        // Send login request
-        when (val response = apiService.post("/Auth/login", requestBody)) {
+        return when (val response = apiService.post("/Auth/login", requestBody)) {
             is ApiResponse.Success -> {
                 try {
                     val responseData = response.data
-
-                    // Parse API response structure: {code, message, data: {token}}
                     val code = responseData.optInt("code", 0)
                     val message = responseData.optString("message", "")
 
@@ -71,37 +70,32 @@ class AuthManager(context: Context) {
                     }
 
                     val data = responseData.optJSONObject("data")
-                    if (data == null) {
-                        return LoginResult.Error("Invalid server response format")
-                    }
+                        ?: return LoginResult.Error("Invalid server response format")
 
-                    val token = data.optString("token", "")
-                    if (token.isEmpty()) {
-                        return LoginResult.Error("Server returned empty token")
-                    }
+                    val token = data.optString("token", "").trim()
+                    if (token.isEmpty()) return LoginResult.Error("Server returned empty token")
 
-                    // Parse JWT token to get isPaidUser info
                     val isPaidUser = parseIsPaidFromToken(token)
-
-                    // Save authentication info
                     saveAuthInfo(username, token, isPaidUser)
 
-                    Log.d(TAG, "Login successful for user: $username, isPaid: $isPaidUser")
-                    return LoginResult.Success(
-                        username = username,
-                        token = token,
-                        isPaidUser = isPaidUser
+                    Log.d(
+                        TAG,
+                        "Login ok: $username isPaid=$isPaidUser tokenLen=${token.length} hasDot=${token.contains(".")}"
                     )
 
+                    // ✅ 调试：打印 JWT payload 的关键字段（不打印完整 token）
+                    debugJwtToken(token)
+
+                    LoginResult.Success(username, token, isPaidUser)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error parsing login response", e)
-                    return LoginResult.Error("Failed to parse server response")
+                    LoginResult.Error("Failed to parse server response")
                 }
             }
 
             is ApiResponse.Error -> {
-                Log.e(TAG, "Login failed: ${response.message}")
-                return when (response.code) {
+                Log.e(TAG, "Login failed: ${response.code} ${response.message}")
+                when (response.code) {
                     401 -> LoginResult.Error("Invalid username or password")
                     404 -> LoginResult.Error("User not found")
                     500 -> LoginResult.Error("Server error, please try again later")
@@ -111,37 +105,106 @@ class AuthManager(context: Context) {
 
             is ApiResponse.Exception -> {
                 Log.e(TAG, "Network exception during login", response.exception)
-                return LoginResult.Error("Network connection failed, please check your network")
+                LoginResult.Error("Network connection failed, please check your network")
             }
         }
     }
 
+    // =========================
+    // Submit Score
+    // =========================
     /**
-     * Parse JWT token to extract IsPaid information
-     * JWT format: header.payload.signature
+     * ✅ 提交成绩：后端是 ScoresController
+     * POST /api/Scores/submit  (Authorize)
+     * ApiService BASE_URL 已包含 /api，所以这里写 /Scores/submit
      */
+    suspend fun submitGameScore(completionTimeSeconds: Int): Boolean {
+        val token = getToken()
+        if (token.isNullOrEmpty()) {
+            Log.e(TAG, "submitGameScore blocked: no token (not logged in)")
+            return false
+        }
+
+        // ✅ 调试：每次 submit 前也输出一次 claims（看是否过期/iss/aud等）
+        debugJwtToken(token)
+
+        val requestBody = JSONObject().apply {
+            put("completionTimeSeconds", completionTimeSeconds)
+        }
+
+        // 1) 先按正常 Bearer 流程提交（ApiService 会自动加 Bearer）
+        val resp1 = apiService.post("/Scores/submit", requestBody, token)
+
+        // 2) 如果 401，自动再试一次 “RAW token”（不带 Bearer）
+        val finalResp = if (resp1 is ApiResponse.Error && resp1.code == 401) {
+            val pure = token.removePrefix("Bearer").trim()
+            Log.e(TAG, "submitGameScore got 401. Retrying with RAW token... tokenLen=${pure.length}")
+            apiService.post("/Scores/submit", requestBody, "RAW $pure")
+        } else resp1
+
+        return when (finalResp) {
+            is ApiResponse.Success -> {
+                val root = finalResp.data
+
+                // ✅ 有些后端不返回 code 字段；有些返回 201
+                val hasCode = root.has("code")
+                val code = if (hasCode) root.optInt("code", 0) else 200
+                val msg = root.optString("message", "")
+
+                val ok = (code == 200 || code == 201)
+
+                Log.d(TAG, "submitGameScore success: serverCode=$code ok=$ok msg=$msg raw=$root")
+                ok
+            }
+
+            is ApiResponse.Error -> {
+                val human = when (finalResp.code) {
+                    401 -> "Unauthorized (token invalid/expired OR backend auth config mismatch)"
+                    403 -> "Forbidden (no permission)"
+                    404 -> "Not Found (endpoint wrong)"
+                    500 -> "Server error"
+                    else -> "HTTP ${finalResp.code}"
+                }
+                Log.e(TAG, "submitGameScore error: $human body=${finalResp.message}")
+                false
+            }
+
+            is ApiResponse.Exception -> {
+                Log.e(TAG, "submitGameScore exception", finalResp.exception)
+                false
+            }
+        }
+    }
+
+    // =========================
+    // Token helpers
+    // =========================
+    private fun saveAuthInfo(username: String, token: String, isPaidUser: Boolean) {
+        prefs.edit().apply {
+            putString(KEY_TOKEN, token)   // 存 token 原样（可能是纯JWT，也可能是 "Bearer xxx"）
+            putString(KEY_USERNAME, username)
+            putBoolean(KEY_IS_PAID_USER, isPaidUser)
+            apply()
+        }
+    }
+
     private fun parseIsPaidFromToken(token: String): Boolean {
         return try {
-            val parts = token.split(".")
-            if (parts.size < 2) {
-                Log.w(TAG, "Invalid JWT token format")
-                return false
-            }
+            // 兼容 token 前面带 "Bearer "
+            val pure = token.removePrefix("Bearer").trim()
+
+            val parts = pure.split(".")
+            if (parts.size < 2) return false
 
             val payload = parts[1]
             val decodedBytes =
                 Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
             val decodedString = String(decodedBytes)
 
-            Log.d(TAG, "JWT Payload: $decodedString")
-
             val payloadJson = JSONObject(decodedString)
-
-            // Token claim: "IsPaid": "True"/"False" (string)
             val isPaidString = payloadJson.optString("IsPaid", "False")
             isPaidString.equals("True", ignoreCase = true) ||
                     isPaidString.equals("true", ignoreCase = true)
-
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing JWT token", e)
             false
@@ -149,145 +212,54 @@ class AuthManager(context: Context) {
     }
 
     /**
-     * Save authentication info to SharedPreferences
+     * ✅ Debug JWT payload (不打印完整 token，只打印 payload 里的关键字段)
+     * 用来判断：exp 是否过期、iss/aud 是否为空或不匹配、有没有 userId/name 等。
      */
-    private fun saveAuthInfo(username: String, token: String, isPaidUser: Boolean) {
-        prefs.edit().apply {
-            putString(KEY_TOKEN, token)
-            putString(KEY_USERNAME, username)
-            putBoolean(KEY_IS_PAID_USER, isPaidUser)
-            apply()
-        }
-    }
-
-    /**
-     * Get currently saved token
-     */
-    fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
-
-    /**
-     * Get currently logged in username
-     */
-    fun getUsername(): String? = prefs.getString(KEY_USERNAME, null)
-
-    /**
-     * Check if user is a paid user
-     */
-    fun isPaidUser(): Boolean = prefs.getBoolean(KEY_IS_PAID_USER, false)
-
-    /**
-     * Check if user is logged in (has valid token)
-     */
-    fun isLoggedIn(): Boolean = !getToken().isNullOrEmpty()
-
-    /**
-     * Logout
-     */
-    fun logout() {
-        prefs.edit().clear().apply()
-        Log.d(TAG, "User logged out")
-    }
-
-    /**
-     * Submit game completion time to server
-     * POST /Score/submit
-     */
-    suspend fun submitGameScore(completionTimeSeconds: Int): Boolean {
-        val token = getToken()
-
-        if (token == null) {
-            Log.e(TAG, "Cannot submit score: Not logged in")
-            return false
-        }
-
-        // Request body matches API doc
-        val requestBody = JSONObject().apply {
-            put("completionTimeSeconds", completionTimeSeconds)
-        }
-
-        return when (val response = apiService.post("/Score/submit", requestBody, token)) {
-            is ApiResponse.Success -> {
-                val code = response.data.optInt("code", 0)
-                if (code == 200) {
-                    Log.d(TAG, "Score submitted successfully")
-                    true
-                } else {
-                    Log.e(TAG, "Failed to submit score: code $code")
-                    false
-                }
+    private fun debugJwtToken(token: String) {
+        try {
+            val pure = token.removePrefix("Bearer").trim()
+            val parts = pure.split(".")
+            if (parts.size < 2) {
+                Log.e(TAG, "Token is not JWT (parts<2). tokenLen=${pure.length}")
+                return
             }
 
-            else -> {
-                Log.e(TAG, "Failed to submit score")
-                false
+            val payload = parts[1]
+            val decodedBytes = Base64.decode(
+                payload,
+                Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+            )
+            val decodedString = String(decodedBytes)
+            val json = JSONObject(decodedString)
+
+            val exp = json.optLong("exp", 0L)
+            val iss = json.optString("iss", "")
+            val aud = json.optString("aud", "")
+            val sub = json.optString("sub", "")
+
+            // 常见的用户标识字段（不同后端会不一样）
+            val nameId = when {
+                json.has("nameid") -> json.optString("nameid", "")
+                json.has("nameidentifier") -> json.optString("nameidentifier", "")
+                json.has("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier") ->
+                    json.optString("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", "")
+                else -> ""
             }
-        }
-    }
-
-    /**
-     * Get leaderboard with pagination
-     * ✅ API doc: GET /Score/leaderboard?page=&size=
-     */
-    suspend fun getLeaderboard(page: Int = 1, size: Int = 10): LeaderboardResult {
-        val token = getToken() ?: return LeaderboardResult.Error("Not logged in")
-
-        // ✅ FIX: /Score/leaderboard (NOT /Scores/leaderboard)
-        return when (val response = apiService.get("/Score/leaderboard?page=$page&size=$size", token)) {
-            is ApiResponse.Success -> {
-                try {
-                    val responseData = response.data
-                    val code = responseData.optInt("code", 0)
-
-                    if (code != 200) {
-                        return LeaderboardResult.Error("Failed to get leaderboard")
-                    }
-
-                    val data = responseData.optJSONObject("data")
-                        ?: return LeaderboardResult.Error("Invalid response format")
-
-                    val scores = mutableListOf<ScoreEntry>()
-                    val itemsArray = data.optJSONArray("items")
-
-                    itemsArray?.let {
-                        for (i in 0 until it.length()) {
-                            val scoreObj = it.getJSONObject(i)
-                            scores.add(
-                                ScoreEntry(
-                                    username = scoreObj.getString("username"),
-                                    completionTime = scoreObj.getInt("completeTimeSeconds"),
-                                    completeAt = scoreObj.optString("completeAt", "")
-                                )
-                            )
-                        }
-                    }
-
-                    LeaderboardResult.Success(
-                        scores = scores,
-                        totalCount = data.optInt("totalCount", 0),
-                        currentPage = data.optInt("pageNumber", 1),
-                        pageSize = data.optInt("pageSize", 10),
-                        totalPages = data.optInt("totalPages", 1)
-                    )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error parsing leaderboard", e)
-                    LeaderboardResult.Error("Failed to parse leaderboard data")
-                }
+            val username = when {
+                json.has("unique_name") -> json.optString("unique_name", "")
+                json.has("name") -> json.optString("name", "")
+                json.has("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name") ->
+                    json.optString("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", "")
+                else -> ""
             }
 
-            is ApiResponse.Error -> {
-                LeaderboardResult.Error("Failed to get leaderboard: ${response.message}")
-            }
-
-            is ApiResponse.Exception -> {
-                LeaderboardResult.Error("Network error")
-            }
+            Log.d(TAG, "JWT claims: iss=$iss aud=$aud sub=$sub nameId=$nameId name=$username exp=$exp payload=$json")
+        } catch (e: Exception) {
+            Log.e(TAG, "debugJwtToken failed", e)
         }
     }
 }
 
-/**
- * Login result wrapper
- */
 sealed class LoginResult {
     data class Success(
         val username: String,
@@ -297,27 +269,3 @@ sealed class LoginResult {
 
     data class Error(val message: String) : LoginResult()
 }
-
-/**
- * Leaderboard result wrapper
- */
-sealed class LeaderboardResult {
-    data class Success(
-        val scores: List<ScoreEntry>,
-        val totalCount: Int,
-        val currentPage: Int,
-        val pageSize: Int,
-        val totalPages: Int
-    ) : LeaderboardResult()
-
-    data class Error(val message: String) : LeaderboardResult()
-}
-
-/**
- * Score entry data class
- */
-data class ScoreEntry(
-    val username: String,
-    val completionTime: Int,  // Completion time in seconds
-    val completeAt: String    // Completion datetime
-)

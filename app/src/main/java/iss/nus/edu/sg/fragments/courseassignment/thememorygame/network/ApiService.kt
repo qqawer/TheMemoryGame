@@ -15,155 +15,145 @@ import java.net.URL
  * Handles all HTTP communication with the .NET backend
  */
 class ApiService {
-    
+
     companion object {
-        // Backend server address - UPDATED to match API documentation
         private const val BASE_URL = "http://10.0.2.2:5011/api"  // For emulator (port 5011)
-        // private const val BASE_URL = "http://192.168.x.x:5011/api"  // For real device
-        
         private const val TAG = "ApiService"
         private const val TIMEOUT = 10000  // 10 seconds timeout
     }
-    
+
     /**
-     * Execute POST request
-     * @param endpoint API endpoint (e.g. "/Auth/login")
-     * @param jsonBody JSON request body
-     * @param token Optional Bearer token
-     * @return ApiResponse with result, null if failed
+     * token 规则：
+     * - 传入 "Bearer xxx" => 原样使用
+     * - 传入 "RAW xxx"    => 直接用 xxx 作为 Authorization 值（不加 Bearer）
+     * - 其他情况          => 自动拼 "Bearer <token>"
      */
+    private fun applyAuthHeader(connection: HttpURLConnection, token: String?) {
+        val t = token?.trim().orEmpty()
+        if (t.isEmpty()) return
+
+        val value = when {
+            t.startsWith("RAW ", ignoreCase = true) -> t.substring(4).trim()
+            t.startsWith("Bearer ", ignoreCase = true) -> t
+            else -> "Bearer $t"
+        }
+
+        connection.setRequestProperty("Authorization", value)
+
+        val mode = when {
+            t.startsWith("RAW ", true) -> "RAW"
+            t.startsWith("Bearer ", true) -> "BEARER_AS_IS"
+            else -> "BEARER_ADDED"
+        }
+        Log.d(TAG, "Auth header mode=$mode authLen=${value.length} tokenLen=${t.length}")
+    }
+
     suspend fun post(
-        endpoint: String, 
+        endpoint: String,
         jsonBody: JSONObject,
         token: String? = null
     ): ApiResponse = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
-        
+
         try {
             val url = URL("$BASE_URL$endpoint")
             connection = url.openConnection() as HttpURLConnection
-            
-            // Set request properties
+
             connection.apply {
                 requestMethod = "POST"
                 doOutput = true
                 doInput = true
                 connectTimeout = TIMEOUT
                 readTimeout = TIMEOUT
-                
-                // Set headers
+
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Mozilla/5.0")
-                
-                // Add Authorization header if token exists
-                token?.let {
-                    setRequestProperty("Authorization", "Bearer $it")
-                }
+
+                applyAuthHeader(this, token)
             }
-            
-            // Write request body
+
             OutputStreamWriter(connection.outputStream).use { writer ->
                 writer.write(jsonBody.toString())
                 writer.flush()
             }
-            
-            // Read response
+
             val responseCode = connection.responseCode
             Log.d(TAG, "POST $endpoint - Response Code: $responseCode")
-            
-            if (responseCode == HttpURLConnection.HTTP_OK || 
-                responseCode == HttpURLConnection.HTTP_CREATED) {
-                
+
+            if (responseCode == HttpURLConnection.HTTP_OK ||
+                responseCode == HttpURLConnection.HTTP_CREATED
+            ) {
                 val response = BufferedReader(
                     InputStreamReader(connection.inputStream)
                 ).use { it.readText() }
-                
+
                 Log.d(TAG, "Response: $response")
                 ApiResponse.Success(JSONObject(response))
-                
             } else {
-                // Read error response
                 val errorResponse = connection.errorStream?.let {
-                    BufferedReader(InputStreamReader(it)).use { reader ->
-                        reader.readText()
-                    }
+                    BufferedReader(InputStreamReader(it)).use { reader -> reader.readText() }
                 } ?: "HTTP Error $responseCode"
-                
+
                 Log.e(TAG, "Error Response: $errorResponse")
                 ApiResponse.Error(responseCode, errorResponse)
             }
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Network error: ${e.message}", e)
             ApiResponse.Exception(e)
-            
         } finally {
             connection?.disconnect()
         }
     }
-    
-    /**
-     * Execute GET request
-     * @param endpoint API endpoint
-     * @param token Optional Bearer token
-     * @return ApiResponse with result, null if failed
-     */
+
     suspend fun get(
         endpoint: String,
         token: String? = null
     ): ApiResponse = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
-        
+
         try {
             val url = URL("$BASE_URL$endpoint")
             connection = url.openConnection() as HttpURLConnection
-            
+
             connection.apply {
                 requestMethod = "GET"
                 connectTimeout = TIMEOUT
                 readTimeout = TIMEOUT
-                
+
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Mozilla/5.0")
-                
-                token?.let {
-                    setRequestProperty("Authorization", "Bearer $it")
-                }
+
+                applyAuthHeader(this, token)
             }
-            
+
             val responseCode = connection.responseCode
             Log.d(TAG, "GET $endpoint - Response Code: $responseCode")
-            
+
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = BufferedReader(
                     InputStreamReader(connection.inputStream)
                 ).use { it.readText() }
-                
+
                 ApiResponse.Success(JSONObject(response))
             } else {
                 val errorResponse = connection.errorStream?.let {
-                    BufferedReader(InputStreamReader(it)).use { reader ->
-                        reader.readText()
-                    }
+                    BufferedReader(InputStreamReader(it)).use { reader -> reader.readText() }
                 } ?: "HTTP Error $responseCode"
-                
+
                 ApiResponse.Error(responseCode, errorResponse)
             }
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Network error: ${e.message}", e)
             ApiResponse.Exception(e)
-            
         } finally {
             connection?.disconnect()
         }
     }
 }
 
-/**
- * API response wrapper class
- */
 sealed class ApiResponse {
     data class Success(val data: JSONObject) : ApiResponse()
     data class Error(val code: Int, val message: String) : ApiResponse()
