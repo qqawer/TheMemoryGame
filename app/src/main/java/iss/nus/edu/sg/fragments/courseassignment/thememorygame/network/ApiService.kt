@@ -17,7 +17,8 @@ import java.net.URL
 class ApiService {
 
     companion object {
-        private const val BASE_URL = "http://10.0.2.2:5011/api"  // For emulator (port 5011)
+        // ✅ 注意：末尾加 "/"，避免拼接时出现 apiScore 这种坑
+        private const val BASE_URL = "http://10.0.2.2:5011/api/"  // For emulator (port 5011)
         private const val TAG = "ApiService"
         private const val TIMEOUT = 10000  // 10 seconds timeout
     }
@@ -48,6 +49,17 @@ class ApiService {
         Log.d(TAG, "Auth header mode=$mode authLen=${value.length} tokenLen=${t.length}")
     }
 
+    /**
+     * ✅ 统一 endpoint 拼接：
+     * - 允许传 "/Score/leaderboard?page=1&size=10"
+     * - 也允许传 "Score/leaderboard?page=1&size=10"
+     * 最终都会正确拼成 BASE_URL + endpoint
+     */
+    private fun buildUrl(endpoint: String): String {
+        val ep = endpoint.trim().removePrefix("/")  // 去掉开头的 "/"
+        return BASE_URL + ep
+    }
+
     suspend fun post(
         endpoint: String,
         jsonBody: JSONObject,
@@ -56,7 +68,8 @@ class ApiService {
         var connection: HttpURLConnection? = null
 
         try {
-            val url = URL("$BASE_URL$endpoint")
+            val urlStr = buildUrl(endpoint)
+            val url = URL(urlStr)
             connection = url.openConnection() as HttpURLConnection
 
             connection.apply {
@@ -79,7 +92,7 @@ class ApiService {
             }
 
             val responseCode = connection.responseCode
-            Log.d(TAG, "POST $endpoint - Response Code: $responseCode")
+            Log.d(TAG, "POST $endpoint -> $urlStr - Response Code: $responseCode")
 
             if (responseCode == HttpURLConnection.HTTP_OK ||
                 responseCode == HttpURLConnection.HTTP_CREATED
@@ -114,7 +127,8 @@ class ApiService {
         var connection: HttpURLConnection? = null
 
         try {
-            val url = URL("$BASE_URL$endpoint")
+            val urlStr = buildUrl(endpoint)
+            val url = URL(urlStr)
             connection = url.openConnection() as HttpURLConnection
 
             connection.apply {
@@ -129,7 +143,7 @@ class ApiService {
             }
 
             val responseCode = connection.responseCode
-            Log.d(TAG, "GET $endpoint - Response Code: $responseCode")
+            Log.d(TAG, "GET $endpoint -> $urlStr - Response Code: $responseCode")
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = BufferedReader(

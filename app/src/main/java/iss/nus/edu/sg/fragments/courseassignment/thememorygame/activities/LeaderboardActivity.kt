@@ -107,7 +107,10 @@ class LeaderboardActivity : AppCompatActivity() {
             try {
                 val tokenRaw = auth.getToken() // leaderboard 通常允许匿名
                 val api = ApiService()
-                val endpoint = "/Scores/leaderboard?page=1&size=10"
+
+                // ✅ FIX: swagger 路径是 /api/Score/leaderboard (Score 单数)
+                // BASE_URL 已包含 /api/，所以 endpoint 这里不要再写 /api
+                val endpoint = "/Score/leaderboard?page=1&size=10"
 
                 val resp = withContext(Dispatchers.IO) { api.get(endpoint, token = tokenRaw) }
 
