@@ -78,8 +78,8 @@ class PlayActivity : AppCompatActivity() {
 
         // ✅ 按你 raw 文件名：flip_card.wav / match_success.wav / win.wav
         sFlip = soundPool.load(this, R.raw.flip_card, 1)
-        sMatch = soundPool.load(this, R.raw.match_success, 1)
-        sWin = soundPool.load(this, R.raw.win, 1)
+        sMatch = soundPool.load(this, R.raw.win, 1)
+        sWin = soundPool.load(this, R.raw.match_success, 1)
 
         soundPool.setOnLoadCompleteListener { _, _, _ ->
             soundsReady = true
