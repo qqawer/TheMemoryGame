@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 外圈暗金描边 -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#141116"/>
+            <stroke android:width="2dp" android:color="#8E7429"/>
+        </shape>
+    </item>
+
+    <!-- 内圈轻高光 -->
+    <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="270"
+                android:startColor="#2A1F10"
+                android:centerColor="#0F0D10"
+                android:endColor="#1A171C"/>
+        </shape>
+    </item>
+
+</layer-list>

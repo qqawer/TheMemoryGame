@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 0) 最外圈：深金属基底（略冷） -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="18dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#17141A"
+                android:centerColor="#0F0D10"
+                android:endColor="#1D1820" />
+        </shape>
+    </item>
+
+    <!-- 1) 外切边高光：非常细的亮金线（“刀口感”） -->
+    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="17dp" />
+            <solid android:color="#E2C46A" />
+        </shape>
+    </item>
+
+    <!-- 2) 外金属环：暗金渐变（有厚度） -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#8E7429"
+                android:centerColor="#2A1F10"
+                android:endColor="#C9AA43" />
+        </shape>
+    </item>
+
+    <!-- 3) 斜向高光：模拟金属反射（很关键） -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="#00FFFFFF"
+                android:centerColor="#33FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:centerX="0.25"
+                android:centerY="0.20" />
+        </shape>
+    </item>
+
+    <!-- 4) 回到深色：形成“内凹台阶” -->
+    <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="14dp" />
+            <solid android:color="#0F0D10" />
+        </shape>
+    </item>
+
+    <!-- 5) 内凹金属环：偏暗金（压住层次） -->
+    <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="13dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#3A2D12"
+                android:centerColor="#141116"
+                android:endColor="#2A1F10" />
+        </shape>
+    </item>
+
+    <!-- 6) 内切边细线：更暗一点，提升“雕刻感” -->
+    <item android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp" />
+            <solid android:color="#3B2E14" />
+        </shape>
+    </item>
+
+</layer-list>

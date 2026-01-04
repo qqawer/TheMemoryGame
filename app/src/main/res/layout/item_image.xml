@@ -1,35 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="4dp">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="6dp">
 
-    <ImageView
+    <!-- 卡槽 -->
+    <FrameLayout
+        android:id="@+id/itemRoot"
+        android:layout_width="match_parent"
+        android:layout_height="104dp"
+        android:background="@drawable/bg_card_slot_front"
+        android:padding="6dp">
+
+        <!-- 图片 -->
+        <ImageView
             android:id="@+id/ivImage"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="match_parent"
             android:scaleType="centerCrop"
-            android:background="#EEEEEE"/>
+            android:background="@android:color/transparent" />
 
-    <!-- 选中标记 -->
-    <View
+        <!-- ✅ 未选弱化蒙层：默认显示，通过 alpha 控制强弱 -->
+        <View
             android:id="@+id/vOverlay"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:background="#80000000"
-            android:visibility="gone"/>
+            android:layout_height="match_parent"
+            android:background="#99000000"
+            android:alpha="0.42" />
 
-    <TextView
+        <!-- ✅ 选中描边（新增） -->
+        <View
+            android:id="@+id/vBorder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_selected_border"
+            android:alpha="0" />
+
+        <!-- （保留旧 id，避免你历史逻辑崩；但以后不用它） -->
+        <TextView
             android:id="@+id/tvCheckMark"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:layout_gravity="top|end"
-            android:layout_margin="4dp"
-            android:background="@android:color/holo_green_dark"
-            android:gravity="center"
-            android:text="✓"
-            android:textColor="@android:color/white"
-            android:textSize="20sp"
-            android:visibility="gone"/>
+            android:layout_margin="6dp"
+            android:background="@drawable/bg_select_badge"
+            android:visibility="gone" />
+
+        <!-- ✅ 选中标识：居中显示 -->
+        <ImageView
+            android:id="@+id/ivCheckGold"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_check_gold"
+            android:alpha="0"
+            android:elevation="2dp"
+            android:visibility="visible" />
+
+    </FrameLayout>
 
 </FrameLayout>

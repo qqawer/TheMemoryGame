@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 按下：边缘金光（外发光 + 内高光线） -->
+    <item android:state_pressed="true">
+        <layer-list>
+
+            <!-- 外发光：很柔，不盖住卡面 -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="18dp" />
+                    <stroke
+                        android:width="4dp"
+                        android:color="#55D6B35E" />
+                </shape>
+            </item>
+
+            <!-- 内高光线：细一点，增加“金属刀口感” -->
+            <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="#99FFE08A" />
+                </shape>
+            </item>
+
+        </layer-list>
+    </item>
+
+    <!-- 默认：不显示任何前景 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+
+</selector>

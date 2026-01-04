@@ -1,59 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black"
-    tools:context=".activities.GameOverActivity">
+    android:background="@drawable/bg_screen_dark"
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/tvGameOver"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Game Over"
-        android:textColor="@android:color/white"
-        android:textSize="48sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@id/guideline"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.5" />
-
+    <!-- 顶部 HUD（复用 Fetch 的质感） -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:id="@+id/hudGameOver"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintTop_toBottomOf="@id/guideline"
+        android:background="@drawable/bg_hud_metal"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvGameOver"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Game Over"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#E9D9A6"
+            android:letterSpacing="0.02"
+            android:layout_gravity="center_horizontal"/>
+
+        <TextView
+            android:id="@+id/tvGameOverHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Choose your next move"
+            android:textSize="13sp"
+            android:textColor="#B9A46A"
+            android:alpha="0.90"
+            android:layout_gravity="center_horizontal"/>
+
+    </LinearLayout>
+
+    <!-- 中间按钮区：卡牌面板 -->
+    <LinearLayout
+        android:id="@+id/panelActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_panel_dark"
+        android:padding="14dp"
+        app:layout_constraintTop_toBottomOf="@id/hudGameOver"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.35"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <Button
             android:id="@+id/btnRestart"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Restart" />
+            android:layout_height="48dp"
+            android:text="RESTART"
+            android:textAllCaps="true"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:textColor="#E9D9A6"
+            android:background="@drawable/bg_button_gold"
+            app:backgroundTint="@null"
+            android:stateListAnimator="@null"/>
 
         <Button
             android:id="@+id/btnLeaderboard"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Leaderboard" />
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:text="LEADERBOARD"
+            android:textAllCaps="true"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:textColor="#E9D9A6"
+            android:background="@drawable/bg_button_gold_outline"
+            app:backgroundTint="@null"
+            android:stateListAnimator="@null"/>
 
         <Button
             android:id="@+id/btnBack"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Return to Menu" />
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:text="RETURN TO MENU"
+            android:textAllCaps="true"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:textColor="#E9D9A6"
+            android:background="@drawable/bg_button_gold_outline"
+            app:backgroundTint="@null"
+            android:stateListAnimator="@null"/>
 
     </LinearLayout>
 

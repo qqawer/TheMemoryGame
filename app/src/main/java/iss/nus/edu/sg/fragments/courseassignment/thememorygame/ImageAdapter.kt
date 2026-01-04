@@ -24,25 +24,44 @@ class ImageAdapter(
         val ivImage: ImageView = itemView.findViewById(R.id.ivImage)
         val vOverlay: View = itemView.findViewById(R.id.vOverlay)
         val tvCheckMark: TextView = itemView.findViewById(R.id.tvCheckMark)
+        val ivCheckGold: ImageView = itemView.findViewById(R.id.ivCheckGold)
+
+        // ✅ 新增：选中金边
+        val vBorder: View = itemView.findViewById(R.id.vBorder)
 
         fun bind(item: ImageItem, position: Int) {
             val imgFile = File(item.url)
-
             Glide.with(itemView.context)
                 .load(imgFile)
-                .placeholder(ColorDrawable(Color.LTGRAY))
-                .error(ColorDrawable(Color.RED))
+                .placeholder(android.R.color.transparent)
+                .error(android.R.color.transparent)
                 .centerCrop()
                 .into(ivImage)
 
-            vOverlay.visibility = if (item.isSelected) View.VISIBLE else View.GONE
-            tvCheckMark.visibility = if (item.isSelected) View.VISIBLE else View.GONE
+            val selected = item.isSelected
 
-            itemView.setOnClickListener {
-                onImageClick(position)
-            }
+            // ✅ 未选弱化 / 选中高亮
+            vOverlay.alpha = if (selected) 0f else 0.55f
+            vBorder.alpha = if (selected) 1f else 0f
+
+            // ✅ 居中勾：用 alpha 做淡入淡出（比 visibility 更“高级”）
+            ivCheckGold.alpha = if (selected) 0.95f else 0f
+
+            // 旧的右上角徽章不用了（但保留 id 不删）
+            tvCheckMark.visibility = View.GONE
+
+            // ✅ 选中轻微放大
+            itemView.scaleX = if (selected) 1.03f else 1.0f
+            itemView.scaleY = if (selected) 1.03f else 1.0f
+
+            itemView.setOnClickListener { onImageClick(position) }
+            itemView.alpha = 1f
+            ivImage.alpha = 1f
+            itemView.rotation = 0f
         }
     }
+
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
         val view = LayoutInflater.from(parent.context)

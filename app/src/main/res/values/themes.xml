@@ -1,20 +1,37 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
+    <!-- Base application theme (Dark Gold Card Game Style). -->
     <style name="Theme.TheMemoryGame" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_700</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+
+        <!-- Primary = Dark stage -->
+        <item name="colorPrimary">#0F0D10</item>
+        <item name="colorPrimaryVariant">#151317</item>
+        <item name="colorOnPrimary">#E9D9A6</item>
+
+        <!-- Secondary = Gold accent -->
+        <item name="colorSecondary">#C9AA43</item>
+        <item name="colorSecondaryVariant">#8E7429</item>
+        <item name="colorOnSecondary">#0F0D10</item>
+
+        <!-- Background / Surface -->
+        <item name="android:colorBackground">#0B0A0D</item>
+        <item name="colorSurface">#0F0D10</item>
+        <item name="colorOnSurface">#E9D9A6</item>
+
+        <!-- Dialog + controls default tint -->
+        <item name="colorControlHighlight">#33C9AA43</item>
+        <item name="colorControlActivated">#C9AA43</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">#0B0A0D</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Optional: remove actionbar shadow if any -->
+        <item name="elevation">0dp</item>
+
     </style>
 
-    <style name="Theme.TheMemoryGame.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.TheMemoryGame.AppBarOverlay" parent="ThemeOverlay.MaterialComponents.Dark.ActionBar" />
+    <style name="Theme.TheMemoryGame.PopupOverlay" parent="ThemeOverlay.MaterialComponents.Dark" />
 
-    <style name="Theme.TheMemoryGame.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

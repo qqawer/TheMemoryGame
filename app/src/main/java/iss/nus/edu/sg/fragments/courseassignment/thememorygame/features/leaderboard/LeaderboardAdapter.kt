@@ -32,7 +32,26 @@ class LeaderboardAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val it = items[position]
         holder.tvRank.text = (position + 1).toString()
+        // Top 3 badge
+        val badgeRes = when (position) {
+            0 -> R.drawable.bg_rank_badge_gold
+            1 -> R.drawable.bg_rank_badge_silver
+            2 -> R.drawable.bg_rank_badge_bronze
+            else -> R.drawable.bg_rank_badge
+        }
+        holder.tvRank.setBackgroundResource(badgeRes)
+
         holder.tvName.text = it.displayName()
-        holder.tvTime.text = "${it.displaySeconds()}s"
+        holder.tvTime.text = formatHMS(it.completeTimeSeconds)
+
     }
+
+    private fun formatHMS(totalSeconds: Int): String {
+        val h = totalSeconds / 3600
+        val m = (totalSeconds % 3600) / 60
+        val s = totalSeconds % 60
+        return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
+        else String.format("%02d:%02d", m, s)
+    }
+
 }

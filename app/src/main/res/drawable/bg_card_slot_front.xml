@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 内凹暗边（让图片像“嵌进去”） -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="14dp" />
+            <solid android:color="#0F0D10" />
+        </shape>
+    </item>
+
+    <!-- 内侧卡槽（微亮，干净，不要纹理） -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#1B1720"
+                android:endColor="#151317" />
+        </shape>
+    </item>
+
+</layer-list>

@@ -1,40 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    android:layout_margin="5dp"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:foreground="@drawable/fg_card_press_edge">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- 外阴影 + 实体厚度：这里决定卡牌“整体尺寸” -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="155dp"
+        android:background="@drawable/bg_card_shadow"
+        android:padding="5dp">
 
-        <ImageView
-            android:id="@+id/ivCard"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:scaleType="centerCrop"
-            app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+        <!-- 金属框 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_card_border_gold" />
 
-        <ImageView
-            android:id="@+id/ivCheckMark"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/ic_check_large"
-            android:scaleType="center"
-            android:visibility="gone"
-            android:background="#99888888"
-            app:layout_constraintTop_toTopOf="@id/ivCard"
-            app:layout_constraintStart_toStartOf="@id/ivCard"
-            app:layout_constraintEnd_toEndOf="@id/ivCard"
-            app:layout_constraintBottom_toBottomOf="@id/ivCard" />
+        <!-- ================= 背面 ================= -->
+        <FrameLayout
+            android:id="@+id/viewBack"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible">
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <ImageView
+                android:id="@+id/ivBack"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="7dp"
+                android:scaleType="centerCrop"
+                android:background="@drawable/bg_card_inner_dark" />
 
-</androidx.cardview.widget.CardView>
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_corner_ornament"
+                android:alpha="0.55" />
+
+            <ImageView
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_gravity="center"
+                android:alpha="0.92"
+                android:src="@drawable/ic_rune_gold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_gloss_overlay"
+                android:alpha="0.55" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_vignette_overlay"
+                android:alpha="0.70" />
+        </FrameLayout>
+
+        <!-- ================= 正面 ================= -->
+        <FrameLayout
+            android:id="@+id/viewFront"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivFront"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="7dp"
+                android:scaleType="centerCrop"
+                android:background="@drawable/bg_card_slot_front" />
+
+            <View
+                android:id="@+id/viewMatchedDim"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#99000000"
+                android:visibility="gone" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_corner_ornament"
+                android:alpha="0.18" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_gloss_overlay"
+                android:alpha="0.35" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_vignette_overlay"
+                android:alpha="0.32" />
+
+            <View
+                android:id="@+id/viewMatchedGlow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/card_matched_glow"
+                android:visibility="gone" />
+
+            <View
+                android:id="@+id/viewCheckGlow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="6dp"
+                android:background="@drawable/badge_glow_gold"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/ivCheckMark"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:visibility="gone"
+                android:background="@drawable/bg_match_badge_gold"
+                android:padding="7dp"
+                android:src="@drawable/ic_check_gold" />
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+</FrameLayout>
