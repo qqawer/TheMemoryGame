@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         layoutUserInfo.visibility = View.GONE
 
         // ✅ 未登录：要显示登录按钮
-        btnLoginPrompt.visibility = View.VISIBLE
+        btnLoginPrompt.visibility = View.GONE
 
         btnLogout.visibility = View.GONE
         btnStartGame.text = getString(R.string.btn_start_game)
