@@ -2,6 +2,7 @@ package iss.nus.edu.sg.fragments.courseassignment.thememorygame
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -35,8 +37,13 @@ class FetchActivity : AppCompatActivity() {
     private val db by lazy { AppDatabase.getDatabase(this) }
 
     companion object {
+        private const val TAG = "FetchActivity"
         private const val MAX_SELECTION = 6
         private const val MAX_IMAGES = 20
+
+        // 更像真实浏览器的 UA（很多站会挡 “Mozilla” 这种过短 UA）
+        private const val UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,7 +84,7 @@ class FetchActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter a URL", Toast.LENGTH_SHORT).show()
             }
         }
-        
+
         btnBack.setOnClickListener { finish() }
 
         btnConfirmSelection.setOnClickListener {
@@ -85,9 +92,9 @@ class FetchActivity : AppCompatActivity() {
             navigateToPlayActivity()
         }
 
-        btnContinue.setOnClickListener { 
+        btnContinue.setOnClickListener {
             saveCurrentToHistory()
-            navigateToPlayActivity() 
+            navigateToPlayActivity()
         }
     }
 
@@ -147,12 +154,19 @@ class FetchActivity : AppCompatActivity() {
                 val imageUrls = extractImageUrls(url)
                 if (imageUrls.isEmpty()) {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@FetchActivity, "No images found", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@FetchActivity,
+                            "No images found.\nTry a page with real images (e.g. Wikipedia/Commons) or a different URL.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                     return@launch
                 }
 
-                imageUrls.take(MAX_IMAGES).forEachIndexed { index, imgUrl ->
+                val targets = imageUrls.take(MAX_IMAGES)
+                val total = targets.size
+
+                targets.forEachIndexed { index, imgUrl ->
                     val destFile = File(imageDir, "img_${index}.jpg")
                     val success = withContext(Dispatchers.IO) {
                         downloadToFileWithUserAgent(imgUrl, destFile)
@@ -161,11 +175,12 @@ class FetchActivity : AppCompatActivity() {
                     if (success) {
                         withContext(Dispatchers.Main) {
                             imageAdapter.addImage(ImageItem(destFile.absolutePath))
-                            updateProgress(index + 1, MAX_IMAGES)
+                            updateProgress(index + 1, total)
                         }
                     }
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "Fetch error: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@FetchActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
@@ -182,9 +197,11 @@ class FetchActivity : AppCompatActivity() {
     private fun downloadToFileWithUserAgent(url: String, file: File): Boolean {
         return try {
             val connection = URL(url).openConnection() as HttpURLConnection
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
+            connection.setRequestProperty("User-Agent", UA)
+            connection.setRequestProperty("Accept", "image/*,*/*;q=0.8")
+            connection.instanceFollowRedirects = true
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
 
             if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                 connection.inputStream.use { input ->
@@ -193,26 +210,89 @@ class FetchActivity : AppCompatActivity() {
                     }
                 }
                 true
-            } else false
+            } else {
+                Log.w(TAG, "Download failed ${connection.responseCode} for $url")
+                false
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w(TAG, "Download exception: ${e.message} url=$url", e)
             false
         }
     }
 
-    private suspend fun extractImageUrls(url: String): List<String> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val document = Jsoup.connect(url).userAgent("Mozilla").timeout(10000).get()
-                document.select("img[src]")
-                    .mapNotNull { it.absUrl("src") }
-                    .filter { it.startsWith("http") }
-                    .distinct()
-            } catch (e: Exception) { emptyList() }
+    /**
+     * ✅ 更强的图片提取：
+     * - img[src]
+     * - img[data-src] / data-original / data-lazy-src
+     * - img[srcset] / source[srcset]（取 srcset 里的第一张）
+     */
+    private suspend fun extractImageUrls(url: String): List<String> = withContext(Dispatchers.IO) {
+        try {
+            val doc: Document = Jsoup.connect(url)
+                .userAgent(UA)
+                .referrer("https://www.google.com/")
+                .timeout(15000)
+                .followRedirects(true)
+                .ignoreHttpErrors(true)
+                .get()
+
+            val out = LinkedHashSet<String>()
+
+            // 1) 常规 img[src]
+            doc.select("img[src]").forEach { el ->
+                val abs = el.absUrl("src").trim()
+                if (abs.startsWith("http")) out.add(abs)
+            }
+
+            // 2) 懒加载 data-src / data-original / data-lazy-src
+            listOf("data-src", "data-original", "data-lazy-src").forEach { attr ->
+                doc.select("img[$attr]").forEach { el ->
+                    val abs = el.absUrl(attr).trim()
+                    if (abs.startsWith("http")) out.add(abs)
+                }
+            }
+
+            // 3) srcset（img 或 source）
+            fun pickFirstFromSrcset(srcset: String): String? {
+                // srcset 格式：url1 1x, url2 2x 或 url1 300w, url2 600w
+                val first = srcset.split(",")
+                    .map { it.trim() }
+                    .firstOrNull { it.isNotEmpty() }
+                    ?: return null
+                val urlPart = first.split(" ")
+                    .firstOrNull { it.isNotEmpty() }
+                    ?: return null
+                return urlPart
+            }
+
+            doc.select("img[srcset]").forEach { el ->
+                val srcset = el.attr("srcset").trim()
+                val candidate = pickFirstFromSrcset(srcset) ?: return@forEach
+                val abs = el.absUrl("srcset").trim() // 有些站 absUrl("srcset") 不靠谱，所以下面补一手
+                if (abs.startsWith("http")) out.add(abs) else if (candidate.startsWith("http")) out.add(candidate)
+            }
+
+            doc.select("source[srcset]").forEach { el ->
+                val candidate = pickFirstFromSrcset(el.attr("srcset").trim()) ?: return@forEach
+                val abs = try {
+                    // source 没有 absUrl 对 srcset 的好支持，手动处理相对路径
+                    URL(URL(url), candidate).toString()
+                } catch (_: Exception) {
+                    candidate
+                }
+                if (abs.startsWith("http")) out.add(abs)
+            }
+
+            Log.d(TAG, "extractImageUrls found=${out.size} url=$url")
+            out.toList()
+        } catch (e: Exception) {
+            Log.e(TAG, "extractImageUrls failed: ${e.message} url=$url", e)
+            emptyList()
         }
     }
 
     private fun updateProgress(current: Int, total: Int) {
+        if (total <= 0) return
         progressBar.progress = (current * 100) / total
         tvProgress.text = "Downloading $current of $total images..."
     }
@@ -229,10 +309,10 @@ class FetchActivity : AppCompatActivity() {
     private fun updateContinueButton() {
         val count = imageAdapter.getSelectedCount()
         val isReady = (count == MAX_SELECTION)
-        
+
         btnConfirmSelection.isEnabled = isReady
         btnConfirmSelection.text = "Confirm ($count/$MAX_SELECTION)"
-        
+
         btnContinue.isEnabled = isReady
         btnContinue.text = "Continue ($count/$MAX_SELECTION selected)"
     }
