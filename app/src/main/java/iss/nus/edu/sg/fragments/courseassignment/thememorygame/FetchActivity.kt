@@ -27,7 +27,7 @@ class FetchActivity : AppCompatActivity() {
     private lateinit var tvProgress: TextView
     private lateinit var rvImages: RecyclerView
     private lateinit var btnContinue: Button
-    private lateinit var btnBack: Button
+    private lateinit var btnBack: ImageButton
     private lateinit var btnConfirmSelection: Button
 
     private lateinit var imageAdapter: ImageAdapter

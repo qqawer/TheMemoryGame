@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="18dp" />
+
+    <!-- 比背景亮一档的金属暗面，让面板从背景里“浮起来” -->
+    <gradient
+        android:angle="270"
+        android:startColor="#231F28"
+        android:centerColor="#17141B"
+        android:endColor="#0F0D10" />
+
+    <stroke
+        android:width="1.5dp"
+        android:color="#4FC9AA43" />
+</shape>

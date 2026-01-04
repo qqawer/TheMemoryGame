@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 左上角柔光（radial 更自然，不会块状） -->
+    <item android:gravity="top|start">
+        <shape>
+            <size android:width="120dp" android:height="120dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="120dp"
+                android:centerX="0.2"
+                android:centerY="0.2"
+                android:startColor="#22D6B35E"
+                android:endColor="#00D6B35E" />
+        </shape>
+    </item>
+
+    <!-- 右下角柔光 -->
+    <item android:gravity="bottom|end">
+        <shape>
+            <size android:width="120dp" android:height="120dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="120dp"
+                android:centerX="0.8"
+                android:centerY="0.8"
+                android:startColor="#18D6B35E"
+                android:endColor="#00D6B35E" />
+        </shape>
+    </item>
+
+</layer-list>

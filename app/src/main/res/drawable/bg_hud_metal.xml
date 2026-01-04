@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ① 底色：深炭黑 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0E0C10"/>
+        </shape>
+    </item>
+
+    <!-- ② 金属纵向渐变 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#1B1720"
+                android:centerColor="#0F0D10"
+                android:endColor="#211B24"/>
+        </shape>
+    </item>
+
+    <!-- ③ 顶部细高光（让它“有面”） -->
+    <item android:top="0dp">
+        <shape android:shape="rectangle">
+            <size android:height="2dp"/>
+            <solid android:color="#22FFFFFF"/>
+        </shape>
+    </item>
+
+    <!-- ④ 底部暗边（让它“有厚度”） -->
+    <item android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <size android:height="3dp"/>
+            <solid android:color="#33000000"/>
+        </shape>
+    </item>
+
+</layer-list>

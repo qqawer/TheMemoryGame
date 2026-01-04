@@ -22,33 +22,38 @@ object AdsLoader {
     private const val ENDPOINT = "/api/Ad/active"
 
     /**
-     * Safe: if views are missing in activity_play.xml, this does nothing and won't crash.
-     * Requires your layout to optionally include:
-     *  - adContainer (View)
-     *  - tvAdTitle (TextView)
-     *  - ivAd (ImageView)
-     *  - tvAdStatus (TextView) [optional]
+     * 广告实体：供轮播/单图两种模式共用
+     * imageUrl 最终会被转成可直接加载的完整 URL（toFullUrl）
+     */
+    data class Ad(val title: String, val imageUrl: String)
+
+    /**
+     * 轮播推荐用：拉取 active ads 列表（主线程回调）
+     */
+    fun fetchActiveAds(activity: Activity, onResult: (List<Ad>) -> Unit) {
+        val prefs = activity.getSharedPreferences("MemoryGamePrefs", Activity.MODE_PRIVATE)
+        val token = prefs.getString("auth_token", null)
+
+        CoroutineScope(Dispatchers.Main).launch {
+            val ads = withContext(Dispatchers.IO) { fetchAds(token) }
+            onResult(ads)
+        }
+    }
+
+    /**
+     * 兼容旧用法：如果布局里存在 ivAd，就加载第一条广告图。
+     * 如果你已经改成 ViewPager2(vpAds)，那它会检测不到 ivAd 并自动跳过（不崩）。
      *
      * Paid users -> hide ad container.
      */
     fun tryLoadAndShow(activity: Activity, root: View) {
         val containerId = activity.resources.getIdentifier("adContainer", "id", activity.packageName)
-        val titleId = activity.resources.getIdentifier("tvAdTitle", "id", activity.packageName)
-        val imageId = activity.resources.getIdentifier("ivAd", "id", activity.packageName)
-        val statusId = activity.resources.getIdentifier("tvAdStatus", "id", activity.packageName)
-
-        if (containerId == 0 || titleId == 0 || imageId == 0) {
-            // Layout doesn't have ad UI -> ignore
-            Log.d(TAG, "Ad views not found in layout. Skip.")
+        if (containerId == 0) {
+            Log.d(TAG, "adContainer not found. Skip.")
             return
         }
-
         val adContainer = root.findViewById<View>(containerId)
-        val tvTitle = root.findViewById<TextView>(titleId)
-        val ivAd = root.findViewById<ImageView>(imageId)
-        val tvStatus = if (statusId != 0) root.findViewById<TextView>(statusId) else null
 
-        // Read login info from SharedPreferences (matches your AuthManager)
         val prefs = activity.getSharedPreferences("MemoryGamePrefs", Activity.MODE_PRIVATE)
         val token = prefs.getString("auth_token", null)
         val isPaid = prefs.getBoolean("is_paid_user", false)
@@ -60,30 +65,47 @@ object AdsLoader {
             adContainer.visibility = View.VISIBLE
         }
 
-        // load in background without lifecycleScope dependency
+        // 旧布局：ivAd
+        val imageId = activity.resources.getIdentifier("ivAd", "id", activity.packageName)
+        if (imageId == 0) {
+            Log.d(TAG, "ivAd not found in layout. (Maybe using ViewPager2) Skip single-image load.")
+            return
+        }
+
+        val ivAd = root.findViewById<ImageView>(imageId)
+
+        // title/status 可选
+        val titleId = activity.resources.getIdentifier("tvAdTitle", "id", activity.packageName)
+        val statusId = activity.resources.getIdentifier("tvAdStatus", "id", activity.packageName)
+        val tvTitle = if (titleId != 0) root.findViewById<TextView>(titleId) else null
+        val tvStatus = if (statusId != 0) root.findViewById<TextView>(statusId) else null
+
         CoroutineScope(Dispatchers.Main).launch {
             tvStatus?.text = ""
-            val result = withContext(Dispatchers.IO) { fetchFirstAd(token) }
+            val ads = withContext(Dispatchers.IO) { fetchAds(token) }
 
-            if (result == null) {
-                tvTitle.text = "Advertisement"
+            if (ads.isEmpty()) {
+                tvTitle?.text = "Advertisement"
                 ivAd.setImageDrawable(null)
                 tvStatus?.text = "Ad: empty response"
                 return@launch
             }
 
-            tvTitle.text = result.title.ifBlank { "Advertisement" }
+            val first = ads.first()
+            tvTitle?.text = first.title.ifBlank { "Advertisement" }
 
-            if (result.imageUrl.isNotBlank()) {
-                val finalUrl = toFullUrl(result.imageUrl)
-                Glide.with(activity).load(finalUrl).into(ivAd)
+            if (first.imageUrl.isNotBlank()) {
+                Log.d(TAG, "Loading ad image: ${first.imageUrl}")
+                Glide.with(activity).load(first.imageUrl).into(ivAd)
             } else {
                 ivAd.setImageDrawable(null)
             }
         }
     }
 
-    private data class Ad(val title: String, val imageUrl: String)
+    // ------------------------
+    // Internal helpers
+    // ------------------------
 
     private fun toFullUrl(pathOrUrl: String): String {
         val s = pathOrUrl.trim()
@@ -97,7 +119,7 @@ object AdsLoader {
      * Response format sample:
      * {"code":200,"message":"...","data":[{"id":1,"adTitle":"dog1","adImageUrl":"http://...","isActive":true}, ...]}
      */
-    private fun fetchFirstAd(token: String?): Ad? {
+    private fun fetchAds(token: String?): List<Ad> {
         var conn: HttpURLConnection? = null
         return try {
             val url = URL(BASE_URL + ENDPOINT)
@@ -117,32 +139,54 @@ object AdsLoader {
 
             if (code !in 200..299) {
                 Log.e(TAG, "Ad fetch failed: HTTP $code, body=$body")
-                return null
+                return emptyList()
             }
 
             val json = JSONObject(body)
-            val data = json.opt("data") ?: return null
+            val data = json.opt("data") ?: return emptyList()
+
+            val list = mutableListOf<Ad>()
 
             when (data) {
                 is JSONArray -> {
-                    if (data.length() == 0) return null
-                    val obj = data.optJSONObject(0) ?: return null
-                    Ad(
-                        title = obj.optString("adTitle", ""),
-                        imageUrl = obj.optString("adImageUrl", obj.optString("adImageUrlUrl", ""))
-                    )
+                    for (i in 0 until data.length()) {
+                        val obj = data.optJSONObject(i) ?: continue
+                        val title = obj.optString("adTitle", "")
+                        val img = obj.optString("adImageUrl", obj.optString("adImageUrlUrl", ""))
+                        if (img.isNotBlank()) {
+                            list.add(
+                                Ad(
+                                    title = title,
+                                    imageUrl = toFullUrl(img)
+                                )
+                            )
+                        }
+                    }
                 }
+
                 is JSONObject -> {
-                    Ad(
-                        title = data.optString("adTitle", ""),
-                        imageUrl = data.optString("adImageUrl", data.optString("adImageUrlUrl", ""))
-                    )
+                    val title = data.optString("adTitle", "")
+                    val img = data.optString("adImageUrl", data.optString("adImageUrlUrl", ""))
+                    if (img.isNotBlank()) {
+                        list.add(
+                            Ad(
+                                title = title,
+                                imageUrl = toFullUrl(img)
+                            )
+                        )
+                    }
                 }
-                else -> null
+
+                else -> {
+                    // unexpected format
+                    return emptyList()
+                }
             }
+
+            list
         } catch (e: Exception) {
-            Log.e(TAG, "fetchFirstAd exception: ${e.message}", e)
-            null
+            Log.e(TAG, "fetchAds exception: ${e.message}", e)
+            emptyList()
         } finally {
             conn?.disconnect()
         }

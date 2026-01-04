@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 1) 最外层大面积柔影（极淡，提供空气感） -->
+    <item android:left="0dp" android:top="10dp" android:right="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="380dp"
+                android:centerX="0.5"
+                android:centerY="0.65"
+                android:startColor="#1A000000"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- 2) 中层聚焦柔影（更集中在底部） -->
+    <item android:left="4dp" android:top="12dp" android:right="4dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="18dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="300dp"
+                android:centerX="0.5"
+                android:centerY="0.72"
+                android:startColor="#26000000"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- 3) 近影（稍实一点，保证“落地”） -->
+    <item android:left="6dp" android:top="14dp" android:right="6dp" android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <solid android:color="#22000000" />
+        </shape>
+    </item>
+
+    <!-- 4) 卡片实体底（深炭黑，不用纯黑） -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="18dp" />
+            <solid android:color="#151317" />
+        </shape>
+    </item>
+
+</layer-list>

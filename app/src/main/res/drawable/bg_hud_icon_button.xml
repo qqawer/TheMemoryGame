@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- 外环更亮 -->
+            <item>
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#E2C46A"
+                        android:endColor="#8E7429" />
+                </shape>
+            </item>
+
+            <!-- 内凹 -->
+            <item android:insetLeft="3dp" android:insetTop="3dp" android:insetRight="3dp" android:insetBottom="3dp">
+                <shape android:shape="oval">
+                    <solid android:color="#0F0D10"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <item>
+        <layer-list>
+            <!-- 外环（金属） -->
+            <item>
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#C9AA43"
+                        android:endColor="#6F5A22" />
+                </shape>
+            </item>
+
+            <!-- 内槽 -->
+            <item android:insetLeft="3dp" android:insetTop="3dp" android:insetRight="3dp" android:insetBottom="3dp">
+                <shape android:shape="oval">
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#16131A"
+                        android:endColor="#0F0D10" />
+                </shape>
+            </item>
+
+            <!-- 顶部一点点高光 -->
+            <item android:insetLeft="6dp" android:insetTop="6dp" android:insetRight="6dp" android:insetBottom="6dp">
+                <shape android:shape="oval">
+                    <solid android:color="#0AFFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+</selector>

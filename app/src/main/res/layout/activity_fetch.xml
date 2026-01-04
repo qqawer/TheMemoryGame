@@ -1,91 +1,218 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@drawable/bg_screen_dark"
+    android:padding="14dp">
 
-    <!-- 顶部导航区域 -->
-    <RelativeLayout
-        android:layout_width="match_parent"
+    <!-- ===== 顶部 HUD ===== -->
+    <LinearLayout
+        android:id="@+id/hudFetch"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp">
+        android:orientation="vertical"
+        android:background="@drawable/bg_hud_metal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <Button
-            android:id="@+id/btnBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:text="Back" />
+        <!-- 顶部一行：返回 / 标题 / 确认 -->
+        <!-- 顶部一行：返回 / 标题 / 确认（替换 RelativeLayout 为 ConstraintLayout，解决文字冲突） -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:text="Fetch Images"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            <!-- Back：保留原 id -->
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_hud_icon_button"
+                android:src="@drawable/ic_arrow_back"
+                android:contentDescription="Back"
+                android:padding="8dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
 
-        <Button
-            android:id="@+id/btnConfirmSelection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:text="Confirm (0/6)"
-            android:enabled="false" />
-    </RelativeLayout>
+            <!-- Confirm：保留原 id（微调 padding，让它更像徽章且不挤标题） -->
+            <Button
+                android:id="@+id/btnConfirmSelection"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Confirm (0/6)"
+                android:textAllCaps="true"
+                android:textStyle="bold"
+                android:textSize="11sp"
+                android:letterSpacing="0.04"
+                android:textColor="#E9D9A6"
+                android:background="@drawable/bg_button_gold"
+                app:backgroundTint="@null"
+                android:stateListAnimator="@null"
+                android:enabled="false"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
 
-    <!-- URL 输入区域 -->
+            <!-- 标题：关键改动在这里
+                 1) 宽度设为 0dp + 左右约束，保证不会和两边控件冲突
+                 2) 单行 + ellipsize，实在挤就显示 Fetch Ima…
+            -->
+            <TextView
+                android:id="@+id/tvFetchTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Fetch Images"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02"
+                android:textColor="#E9D9A6"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                app:layout_constraintStart_toEndOf="@id/btnBack"
+                app:layout_constraintEnd_toStartOf="@id/btnConfirmSelection"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <!-- 信息条：提示 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_hud_infobar"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <TextView
+                android:id="@+id/tvHintFetch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Select 6 images to start the game"
+                android:textSize="13sp"
+                android:textColor="#B9A46A" />
+
+            <TextView
+                android:id="@+id/tvSourceTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SOURCE"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#E9D9A6"
+                android:alpha="0.70"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- URL 输入区域（保留原 id etUrl） -->
     <EditText
         android:id="@+id/etUrl"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_input_dark"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         android:hint="Enter URL"
+        android:text="https://stocksnap.io"
         android:inputType="textUri"
-        android:text="https://stocksnap.io" />
+        android:textColor="#E9D9A6"
+        android:textColorHint="#7F6F45"
+        app:layout_constraintTop_toBottomOf="@id/hudFetch"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Fetch 按钮（保留原 id btnFetch） -->
     <Button
         android:id="@+id/btnFetch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Fetch Images" />
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="10dp"
+        android:text="Fetch Images"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:textColor="#E9D9A6"
+        android:background="@drawable/bg_button_gold"
+        app:backgroundTint="@null"
+        android:stateListAnimator="@null"
+        app:layout_constraintTop_toBottomOf="@id/etUrl"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 进度条 -->
+    <!-- 进度条（保留原 id） -->
     <ProgressBar
         android:id="@+id/progressBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:max="20"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="10dp"
+        android:layout_marginTop="12dp"
         android:visibility="gone"
-        style="?android:attr/progressBarStyleHorizontal" />
+        android:max="100"
+        android:progressTint="#C9AA43"
+        android:progressBackgroundTint="#241F26"
+        app:layout_constraintTop_toBottomOf="@id/btnFetch"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <TextView
         android:id="@+id/tvProgress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="6dp"
         android:text="Downloading 0 of 20 images..."
-        android:visibility="gone" />
+        android:textSize="12sp"
+        android:textColor="#B9A46A"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/progressBar"
+        app:layout_constraintStart_toStartOf="parent"/>
 
-    <!-- 图片网格 -->
+    <!-- 图片网格（保留原 id rvImages） -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvImages"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="12dp"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tvProgress"
+        app:layout_constraintBottom_toTopOf="@id/btnContinue"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- 继续按钮 (保持兼容性，但逻辑会合并到 Confirm 键) -->
+    <!-- 继续按钮（保留兼容性 id，默认隐藏） -->
     <Button
         android:id="@+id/btnContinue"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
         android:text="Continue to Game"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:textColor="#E9D9A6"
+        android:background="@drawable/bg_button_gold"
+        app:backgroundTint="@null"
+        android:stateListAnimator="@null"
         android:enabled="false"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
