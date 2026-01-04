@@ -3,6 +3,7 @@ package iss.nus.edu.sg.fragments.courseassignment.thememorygame.network
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -17,18 +18,16 @@ import java.net.URL
 class ApiService {
 
     companion object {
-        // ✅ 注意：末尾加 "/"，避免拼接时出现 apiScore 这种坑
-        private const val BASE_URL = "http://10.0.2.2:5011/api/"  // For emulator (port 5011)
+        private const val BASE_URL = "http://10.0.2.2:5011/api/"
         private const val TAG = "ApiService"
-        private const val TIMEOUT = 10000  // 10 seconds timeout
+        private const val TIMEOUT = 10000
+
+        // ✅ 统一 endpoint 常量，彻底避免 Score/Scores 写错
+        const val ENDPOINT_LEADERBOARD = "Score/leaderboard"
+        const val ENDPOINT_SUBMIT_SCORE = "Score/submit"
+        const val ENDPOINT_LOGIN = "Auth/login"
     }
 
-    /**
-     * token 规则：
-     * - 传入 "Bearer xxx" => 原样使用
-     * - 传入 "RAW xxx"    => 直接用 xxx 作为 Authorization 值（不加 Bearer）
-     * - 其他情况          => 自动拼 "Bearer <token>"
-     */
     private fun applyAuthHeader(connection: HttpURLConnection, token: String?) {
         val t = token?.trim().orEmpty()
         if (t.isEmpty()) return
@@ -49,15 +48,19 @@ class ApiService {
         Log.d(TAG, "Auth header mode=$mode authLen=${value.length} tokenLen=${t.length}")
     }
 
-    /**
-     * ✅ 统一 endpoint 拼接：
-     * - 允许传 "/Score/leaderboard?page=1&size=10"
-     * - 也允许传 "Score/leaderboard?page=1&size=10"
-     * 最终都会正确拼成 BASE_URL + endpoint
-     */
     private fun buildUrl(endpoint: String): String {
-        val ep = endpoint.trim().removePrefix("/")  // 去掉开头的 "/"
+        val ep = endpoint.trim().removePrefix("/")
         return BASE_URL + ep
+    }
+
+    private fun toSafeJson(raw: String): JSONObject {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return JSONObject()
+        return try {
+            JSONObject(trimmed)
+        } catch (e: JSONException) {
+            JSONObject().put("raw", trimmed)
+        }
     }
 
     suspend fun post(
@@ -69,20 +72,15 @@ class ApiService {
 
         try {
             val urlStr = buildUrl(endpoint)
-            val url = URL(urlStr)
-            connection = url.openConnection() as HttpURLConnection
-
-            connection.apply {
+            connection = (URL(urlStr).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 doOutput = true
                 doInput = true
                 connectTimeout = TIMEOUT
                 readTimeout = TIMEOUT
-
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Mozilla/5.0")
-
                 applyAuthHeader(this, token)
             }
 
@@ -93,27 +91,24 @@ class ApiService {
 
             val responseCode = connection.responseCode
             Log.d(TAG, "POST $endpoint -> $urlStr - Response Code: $responseCode")
+            Log.d(TAG, "POST body: $jsonBody")
 
-            if (responseCode == HttpURLConnection.HTTP_OK ||
-                responseCode == HttpURLConnection.HTTP_CREATED
-            ) {
-                val response = BufferedReader(
-                    InputStreamReader(connection.inputStream)
-                ).use { it.readText() }
-
-                Log.d(TAG, "Response: $response")
-                ApiResponse.Success(JSONObject(response))
+            if (responseCode == 200 || responseCode == 201 || responseCode == 204) {
+                val response = if (responseCode == 204) "" else {
+                    BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+                }
+                Log.d(TAG, "POST Response: $response")
+                ApiResponse.Success(toSafeJson(response))
             } else {
                 val errorResponse = connection.errorStream?.let {
                     BufferedReader(InputStreamReader(it)).use { reader -> reader.readText() }
                 } ?: "HTTP Error $responseCode"
-
-                Log.e(TAG, "Error Response: $errorResponse")
+                Log.e(TAG, "POST Error Response: $errorResponse")
                 ApiResponse.Error(responseCode, errorResponse)
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Network error: ${e.message}", e)
+            Log.e(TAG, "POST Network error: ${e.message}", e)
             ApiResponse.Exception(e)
         } finally {
             connection?.disconnect()
@@ -128,39 +123,32 @@ class ApiService {
 
         try {
             val urlStr = buildUrl(endpoint)
-            val url = URL(urlStr)
-            connection = url.openConnection() as HttpURLConnection
-
-            connection.apply {
+            connection = (URL(urlStr).openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = TIMEOUT
                 readTimeout = TIMEOUT
-
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Mozilla/5.0")
-
                 applyAuthHeader(this, token)
             }
 
             val responseCode = connection.responseCode
             Log.d(TAG, "GET $endpoint -> $urlStr - Response Code: $responseCode")
 
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = BufferedReader(
-                    InputStreamReader(connection.inputStream)
-                ).use { it.readText() }
-
-                ApiResponse.Success(JSONObject(response))
+            if (responseCode == 200) {
+                val response = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+                Log.d(TAG, "GET Response: $response")
+                ApiResponse.Success(toSafeJson(response))
             } else {
                 val errorResponse = connection.errorStream?.let {
                     BufferedReader(InputStreamReader(it)).use { reader -> reader.readText() }
                 } ?: "HTTP Error $responseCode"
-
+                Log.e(TAG, "GET Error Response: $errorResponse")
                 ApiResponse.Error(responseCode, errorResponse)
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Network error: ${e.message}", e)
+            Log.e(TAG, "GET Network error: ${e.message}", e)
             ApiResponse.Exception(e)
         } finally {
             connection?.disconnect()
