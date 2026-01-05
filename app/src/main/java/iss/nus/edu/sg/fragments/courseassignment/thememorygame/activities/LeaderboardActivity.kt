@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
@@ -40,7 +41,15 @@ class LeaderboardActivity : AppCompatActivity() {
 
     private lateinit var rv: RecyclerView
     private lateinit var pb: ProgressBar
+
+    // HUD status bar (error / empty / load failed)
     private lateinit var tvStatus: TextView
+
+    // Bottom result card (this run / your best)
+    private lateinit var resultCard: LinearLayout
+    private lateinit var tvThisRunValue: TextView
+    private lateinit var tvYourBestValue: TextView
+
     private val adapter = LeaderboardAdapter()
 
     private val prefs: SharedPreferences by lazy {
@@ -54,6 +63,11 @@ class LeaderboardActivity : AppCompatActivity() {
         rv = findViewById(R.id.rvLeaderboard)
         pb = findViewById(R.id.pbLoading)
         tvStatus = findViewById(R.id.tvStatus)
+
+        // ✅ New bottom card views (from your updated XML)
+        resultCard = findViewById(R.id.resultCard)
+        tvThisRunValue = findViewById(R.id.tvThisRunValue)
+        tvYourBestValue = findViewById(R.id.tvYourBestValue)
 
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
@@ -78,7 +92,11 @@ class LeaderboardActivity : AppCompatActivity() {
     private fun loadLeaderboard() {
         pb.visibility = View.VISIBLE
         rv.visibility = View.GONE
+
+        // reset HUD status + bottom card
         tvStatus.visibility = View.GONE
+        tvStatus.text = ""
+        resultCard.visibility = View.GONE
 
         lifecycleScope.launch {
             val auth = AuthManager.getInstance(this@LeaderboardActivity)
@@ -100,7 +118,7 @@ class LeaderboardActivity : AppCompatActivity() {
             if (shouldShowHeader) {
                 // 先用本地 best 占位（等拉到榜单再用服务器 best 校准）
                 val bestLocal = getLocalBestSeconds(latestUser, latestScore)
-                showHeaderTwoLines(latestScore, bestLocal, bestRankWithin10 = null)
+                showBottomResultCard(latestScore, bestLocal, bestRankWithin10 = null)
             }
 
             try {
@@ -114,13 +132,13 @@ class LeaderboardActivity : AppCompatActivity() {
 
                 when (resp) {
                     is ApiResponse.Error -> {
-                        appendStatus("\n\nLoad failed (HTTP ${resp.code}).")
+                        showStatus("Load failed (HTTP ${resp.code}).")
                         if (shouldShowHeader) consumeThisRunOnce()
                         return@launch
                     }
 
                     is ApiResponse.Exception -> {
-                        appendStatus("\n\nNetwork error: ${resp.exception.message}")
+                        showStatus("Network error: ${resp.exception.message}")
                         if (shouldShowHeader) consumeThisRunOnce()
                         return@launch
                     }
@@ -131,10 +149,10 @@ class LeaderboardActivity : AppCompatActivity() {
                             .take(10)
 
                         if (list.isEmpty()) {
-                            appendStatus("\n\nNo scores yet.")
+                            showStatus("No scores yet.")
                             if (shouldShowHeader) {
                                 val bestLocal = getLocalBestSeconds(latestUser, latestScore)
-                                showHeaderTwoLines(latestScore, bestLocal, bestRankWithin10 = null)
+                                showBottomResultCard(latestScore, bestLocal, bestRankWithin10 = null)
                                 consumeThisRunOnce()
                             }
                             return@launch
@@ -154,7 +172,7 @@ class LeaderboardActivity : AppCompatActivity() {
                                 bestServer ?: Int.MAX_VALUE
                             )
 
-                            // ✅ 写回本地 best（避免你遇到“榜单 15s 但 best 还是 21s”）
+                            // ✅ 写回本地 best（避免“榜单 15s 但 best 还是 21s”）
                             if (unifiedBest != Int.MAX_VALUE) {
                                 saveBestSeconds(latestUser, unifiedBest)
                             }
@@ -162,25 +180,26 @@ class LeaderboardActivity : AppCompatActivity() {
                             // ✅ 名次只跟 best 走：best 在 top10 且精确命中才显示 (#rank)
                             val bestRank = findExactRankWithin10(latestUser, unifiedBest, list)
 
-                            showHeaderTwoLines(latestScore, unifiedBest, bestRankWithin10 = bestRank)
+                            showBottomResultCard(latestScore, unifiedBest, bestRankWithin10 = bestRank)
                             consumeThisRunOnce()
                         }
                     }
                 }
             } catch (e: Exception) {
                 pb.visibility = View.GONE
-                appendStatus("\n\nLoad failed: ${e.message}")
+                showStatus("Load failed: ${e.message}")
                 if (shouldShowHeader) consumeThisRunOnce()
             }
         }
     }
 
     /**
-     * ✅ 两行展示（按你的规则）：
-     * Line1: This run: 00:00:17                  // 永远不显示名次
-     * Line2: Your best: 00:00:15 (#1)            // best 在 Top10 才显示名次
+     * ✅ 底部卡片展示（契合你新的 UI 设计）
+     *
+     * This run: 永远不显示名次
+     * Your best: best 在 Top10 才显示名次 (#rank)
      */
-    private fun showHeaderTwoLines(latestScore: Int, bestSeconds: Int, bestRankWithin10: Int?) {
+    private fun showBottomResultCard(latestScore: Int, bestSeconds: Int, bestRankWithin10: Int?) {
         val runText = if (latestScore > 0) formatHMS(latestScore) else "N/A"
         val bestText =
             if (bestSeconds > 0 && bestSeconds != Int.MAX_VALUE) formatHMS(bestSeconds) else runText
@@ -188,7 +207,14 @@ class LeaderboardActivity : AppCompatActivity() {
         val rankSuffix =
             if (bestRankWithin10 != null && bestRankWithin10 in 1..10) " (#$bestRankWithin10)" else ""
 
-        tvStatus.text = "This run: $runText\nYour best: $bestText$rankSuffix"
+        tvThisRunValue.text = runText
+        tvYourBestValue.text = bestText + rankSuffix
+
+        resultCard.visibility = View.VISIBLE
+    }
+
+    private fun showStatus(message: String) {
+        tvStatus.text = message
         tvStatus.visibility = View.VISIBLE
     }
 
@@ -215,7 +241,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 从服务器 top10 里找该用户最好成绩（忽略大小写，避免 user/User 不一致）
+     * ✅ 从服务器 top10 里找该用户最好成绩（忽略大小写）
      */
     private fun findBestForUserFromTop10(username: String, topList: List<LeaderboardRow>): Int? {
         val u = username.trim()
@@ -227,8 +253,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 只返回“能在当前 top10 列表里精确命中 best”的排名，否则 null（不显示 estimated）
-     * 忽略大小写 + trim，避免算不出 rank
+     * ✅ 只返回“能在当前 top10 列表里精确命中 best”的排名，否则 null
      */
     private fun findExactRankWithin10(
         username: String,
@@ -244,12 +269,6 @@ class LeaderboardActivity : AppCompatActivity() {
                     it.completeTimeSeconds == bestSeconds
         }
         return if (idx in 0..9) idx + 1 else null
-    }
-
-    private fun appendStatus(extra: String) {
-        val base = tvStatus.text?.toString().orEmpty()
-        tvStatus.text = if (base.isBlank()) extra.trim() else base + extra
-        tvStatus.visibility = View.VISIBLE
     }
 
     private fun consumeThisRunOnce() {
