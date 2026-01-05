@@ -39,7 +39,11 @@ class GameOverActivity : AppCompatActivity() {
         imageUrls = intent.getStringArrayListExtra("image_urls")
 
         val auth = AuthManager.getInstance(this)
-        val username = auth.getUsername() ?: "You"
+
+        // ✅ username 优先用 intent（PlayActivity 已传）
+        val username = intent.getStringExtra(LeaderboardActivity.EXTRA_LATEST_USERNAME)
+            ?: auth.getUsername()
+            ?: "You"
 
         // ✅ 尽一切可能读到本局成绩（秒）
         val latestScore = readLatestScoreSeconds(intent)
@@ -57,21 +61,24 @@ class GameOverActivity : AppCompatActivity() {
 
         // 2) Leaderboard
         binding.btnLeaderboard.setOnClickListener {
-            // ✅ 只要 score 有，就保存 best + 标记 pending
-            if (latestScore > 0) {
-                saveThisRunAndBest(username, latestScore)
-            } else {
-                // 这里就是你现在遇到的：说明 PlayActivity 没把分数传过来
+            if (latestScore <= 0) {
                 Toast.makeText(
                     this,
-                    "Score not found. Fix PlayActivity -> GameOver intent extra.",
-                    Toast.LENGTH_LONG
+                    "Score not found. (This run header will be hidden)",
+                    Toast.LENGTH_SHORT
                 ).show()
+
+                // ✅ 仍然允许进榜单，只是不显示 this run
+                startActivity(Intent(this, LeaderboardActivity::class.java))
+                return@setOnClickListener
             }
+
+            // ✅ 有 score：保存 best + pending
+            saveThisRunAndBest(username, latestScore)
 
             lifecycleScope.launch {
                 // ✅ 登录才提交
-                if (auth.isLoggedIn() && latestScore > 0) {
+                if (auth.isLoggedIn()) {
                     val ok = auth.submitGameScore(latestScore)
                     if (!ok) {
                         Toast.makeText(
@@ -80,7 +87,7 @@ class GameOverActivity : AppCompatActivity() {
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-                } else if (!auth.isLoggedIn()) {
+                } else {
                     Toast.makeText(
                         this@GameOverActivity,
                         "Not logged in. Score will not be uploaded.",
@@ -88,7 +95,7 @@ class GameOverActivity : AppCompatActivity() {
                     ).show()
                 }
 
-                // ✅ 打开排行榜：必须带上 score & username，并标记 fromGameOver
+                // ✅ 打开排行榜：带上 score & username，并标记 fromGameOver
                 val toLb = Intent(this@GameOverActivity, LeaderboardActivity::class.java)
                 toLb.putExtra(LeaderboardActivity.EXTRA_LATEST_SCORE_SECONDS, latestScore)
                 toLb.putExtra(LeaderboardActivity.EXTRA_LATEST_USERNAME, username)
@@ -106,10 +113,6 @@ class GameOverActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * ✅ 超强兼容：Int / Long / String 都能读
-     * 你现在读不到就是：PlayActivity 根本没 putExtra 或 key 不一致 / 类型不一致
-     */
     private fun readLatestScoreSeconds(intent: Intent): Int {
         val keys = listOf(
             LeaderboardActivity.EXTRA_LATEST_SCORE_SECONDS, // "latest_score_seconds"
@@ -122,19 +125,16 @@ class GameOverActivity : AppCompatActivity() {
             "score_seconds"
         )
 
-        // 1) Int
         for (k in keys) {
             val v = intent.getIntExtra(k, -1)
             if (v > 0) return v
         }
 
-        // 2) Long
         for (k in keys) {
             val v = intent.getLongExtra(k, -1L)
             if (v > 0L && v <= Int.MAX_VALUE) return v.toInt()
         }
 
-        // 3) String
         for (k in keys) {
             val s = intent.getStringExtra(k)?.trim()
             val n = s?.toIntOrNull()

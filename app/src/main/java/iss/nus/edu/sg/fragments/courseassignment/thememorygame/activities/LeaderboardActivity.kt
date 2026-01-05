@@ -33,7 +33,6 @@ class LeaderboardActivity : AppCompatActivity() {
         private const val KEY_LAST_RUN_PENDING = "last_run_pending"
         private const val KEY_BEST_PREFIX = "best_seconds_" // best_seconds_<username>
 
-        // ✅ GameOverActivity uses these
         const val EXTRA_LATEST_SCORE_SECONDS = "latest_score_seconds"
         const val EXTRA_LATEST_USERNAME = "latest_username"
         const val EXTRA_FROM_GAMEOVER = "from_gameover"
@@ -89,33 +88,26 @@ class LeaderboardActivity : AppCompatActivity() {
             val intentUser = intent.getStringExtra(EXTRA_LATEST_USERNAME)
 
             val latestScore = intentScore
-            val latestUser = intentUser ?: auth.getUsername() ?: "You"
+            val latestUser = (intentUser ?: auth.getUsername() ?: "You").trim()
 
-            // ✅ 只要从 GameOver 来（或 intentScore>0），就显示 header
-            val shouldShowThisRunHeader = (fromGameOver || intentScore > 0) && latestScore > 0
+            val shouldShowHeader = (fromGameOver || intentScore > 0) && latestScore > 0
 
             Log.d(
                 TAG,
-                "fromGameOver=$fromGameOver intentScore=$intentScore user=$latestUser showHeader=$shouldShowThisRunHeader"
+                "fromGameOver=$fromGameOver latestScore=$latestScore user=$latestUser showHeader=$shouldShowHeader"
             )
 
-            if (shouldShowThisRunHeader) {
-                // 先显示占位（等榜单加载完再用服务器数据覆盖 rank/best）
-                showThisRunRankBest(
-                    username = latestUser,
-                    latestScore = latestScore,
-                    rankText = "Loading…",
-                    bestSecondsOverride = null
-                )
+            if (shouldShowHeader) {
+                // 先用本地 best 占位（等拉到榜单再用服务器 best 校准）
+                val bestLocal = getLocalBestSeconds(latestUser, latestScore)
+                showHeaderTwoLines(latestScore, bestLocal, bestRankWithin10 = null)
             }
 
             try {
-                val tokenRaw = auth.getToken() // leaderboard 通常允许匿名
+                val tokenRaw = auth.getToken()
                 val api = ApiService()
 
-                // ✅ 路径：/api/Score/leaderboard（Score 单数）
                 val endpoint = "/Score/leaderboard?page=1&size=10"
-
                 val resp = withContext(Dispatchers.IO) { api.get(endpoint, token = tokenRaw) }
 
                 pb.visibility = View.GONE
@@ -123,13 +115,13 @@ class LeaderboardActivity : AppCompatActivity() {
                 when (resp) {
                     is ApiResponse.Error -> {
                         appendStatus("\n\nLoad failed (HTTP ${resp.code}).")
-                        if (shouldShowThisRunHeader) consumeThisRunOnce()
+                        if (shouldShowHeader) consumeThisRunOnce()
                         return@launch
                     }
 
                     is ApiResponse.Exception -> {
                         appendStatus("\n\nNetwork error: ${resp.exception.message}")
-                        if (shouldShowThisRunHeader) consumeThisRunOnce()
+                        if (shouldShowHeader) consumeThisRunOnce()
                         return@launch
                     }
 
@@ -140,13 +132,9 @@ class LeaderboardActivity : AppCompatActivity() {
 
                         if (list.isEmpty()) {
                             appendStatus("\n\nNo scores yet.")
-                            if (shouldShowThisRunHeader) {
-                                showThisRunRankBest(
-                                    username = latestUser,
-                                    latestScore = latestScore,
-                                    rankText = "N/A",
-                                    bestSecondsOverride = null
-                                )
+                            if (shouldShowHeader) {
+                                val bestLocal = getLocalBestSeconds(latestUser, latestScore)
+                                showHeaderTwoLines(latestScore, bestLocal, bestRankWithin10 = null)
                                 consumeThisRunOnce()
                             }
                             return@launch
@@ -155,20 +143,26 @@ class LeaderboardActivity : AppCompatActivity() {
                         adapter.submit(list)
                         rv.visibility = View.VISIBLE
 
-                        if (shouldShowThisRunHeader) {
-                            // ✅ 真实 Rank：只以服务器返回的 Top10 为准，不再 estimated
-                            val (rankText, bestOverride) = computeRankAndBestFromTop10(
-                                username = latestUser,
-                                latestScore = latestScore,
-                                topList = list
+                        if (shouldShowHeader) {
+                            val bestLocal = getLocalBestSeconds(latestUser, latestScore)
+
+                            // ✅ 服务器 top10 里该用户最好成绩（有就拿来校准本地 best）
+                            val bestServer = findBestForUserFromTop10(latestUser, list)
+
+                            val unifiedBest = minOf(
+                                bestLocal,
+                                bestServer ?: Int.MAX_VALUE
                             )
 
-                            showThisRunRankBest(
-                                username = latestUser,
-                                latestScore = latestScore,
-                                rankText = rankText,
-                                bestSecondsOverride = bestOverride
-                            )
+                            // ✅ 写回本地 best（避免你遇到“榜单 15s 但 best 还是 21s”）
+                            if (unifiedBest != Int.MAX_VALUE) {
+                                saveBestSeconds(latestUser, unifiedBest)
+                            }
+
+                            // ✅ 名次只跟 best 走：best 在 top10 且精确命中才显示 (#rank)
+                            val bestRank = findExactRankWithin10(latestUser, unifiedBest, list)
+
+                            showHeaderTwoLines(latestScore, unifiedBest, bestRankWithin10 = bestRank)
                             consumeThisRunOnce()
                         }
                     }
@@ -176,71 +170,80 @@ class LeaderboardActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 pb.visibility = View.GONE
                 appendStatus("\n\nLoad failed: ${e.message}")
-                if (shouldShowThisRunHeader) consumeThisRunOnce()
+                if (shouldShowHeader) consumeThisRunOnce()
             }
         }
     }
 
     /**
-     * ✅ Header 展示：
-     * - Your best 优先用服务器返回的 best（如果在 Top10 里找得到该用户）
-     * - 找不到就退回用本地 prefs（你们现在就是这么存的）
+     * ✅ 两行展示（按你的规则）：
+     * Line1: This run: 00:00:17                  // 永远不显示名次
+     * Line2: Your best: 00:00:15 (#1)            // best 在 Top10 才显示名次
      */
-    private fun showThisRunRankBest(
-        username: String,
-        latestScore: Int,
-        rankText: String,
-        bestSecondsOverride: Int?
-    ) {
+    private fun showHeaderTwoLines(latestScore: Int, bestSeconds: Int, bestRankWithin10: Int?) {
         val runText = if (latestScore > 0) formatHMS(latestScore) else "N/A"
+        val bestText =
+            if (bestSeconds > 0 && bestSeconds != Int.MAX_VALUE) formatHMS(bestSeconds) else runText
 
-        val bestKey = KEY_BEST_PREFIX + username
-        val localBest = prefs.getInt(bestKey, Int.MAX_VALUE)
+        val rankSuffix =
+            if (bestRankWithin10 != null && bestRankWithin10 in 1..10) " (#$bestRankWithin10)" else ""
 
-        val bestSeconds = bestSecondsOverride
-            ?: if (localBest != Int.MAX_VALUE) localBest else latestScore
-
-        val bestText = if (bestSeconds > 0) formatHMS(bestSeconds) else runText
-
-        val extraHint = if (bestSecondsOverride != null && latestScore > bestSeconds) {
-            "\n(This run didn't beat your best)"
-        } else ""
-
-        tvStatus.text = "This run: $username  $runText\nRank: $rankText\nYour best: $bestText$extraHint"
+        tvStatus.text = "This run: $runText\nYour best: $bestText$rankSuffix"
         tvStatus.visibility = View.VISIBLE
     }
 
+    private fun getLocalBestSeconds(username: String, latestScore: Int): Int {
+        val u = username.trim()
+        if (u.isEmpty()) return if (latestScore > 0) latestScore else Int.MAX_VALUE
+
+        val bestKey = KEY_BEST_PREFIX + u
+        val best = prefs.getInt(bestKey, Int.MAX_VALUE)
+        return minOf(best, if (latestScore > 0) latestScore else Int.MAX_VALUE)
+    }
+
+    private fun saveBestSeconds(username: String, bestSeconds: Int) {
+        val u = username.trim()
+        if (u.isEmpty() || bestSeconds <= 0 || bestSeconds == Int.MAX_VALUE) return
+
+        val bestKey = KEY_BEST_PREFIX + u
+        val old = prefs.getInt(bestKey, Int.MAX_VALUE)
+
+        if (bestSeconds < old) {
+            prefs.edit().putInt(bestKey, bestSeconds).apply()
+            Log.d(TAG, "Best updated locally: user=$u best=$bestSeconds (was=$old)")
+        }
+    }
+
     /**
-     * ✅ 真实规则：
-     * - 排行榜只显示 Top10（服务器返回的就是 Top10）
-     * - Rank 只在 Top10 内才有意义；不在则显示 Not in Top 10
-     * - 同一个用户通常只出现一次（best），所以 27 不会“新增一行”覆盖 18
+     * ✅ 从服务器 top10 里找该用户最好成绩（忽略大小写，避免 user/User 不一致）
      */
-    private fun computeRankAndBestFromTop10(
+    private fun findBestForUserFromTop10(username: String, topList: List<LeaderboardRow>): Int? {
+        val u = username.trim()
+        if (u.isEmpty()) return null
+
+        return topList
+            .filter { it.username.trim().equals(u, ignoreCase = true) }
+            .minOfOrNull { it.completeTimeSeconds }
+    }
+
+    /**
+     * ✅ 只返回“能在当前 top10 列表里精确命中 best”的排名，否则 null（不显示 estimated）
+     * 忽略大小写 + trim，避免算不出 rank
+     */
+    private fun findExactRankWithin10(
         username: String,
-        latestScore: Int,
+        bestSeconds: Int,
         topList: List<LeaderboardRow>
-    ): Pair<String, Int?> {
-        val idxByUser = topList.indexOfFirst {
-            it.username.equals(username, ignoreCase = true)
+    ): Int? {
+        val u = username.trim()
+        if (u.isEmpty()) return null
+        if (bestSeconds <= 0 || bestSeconds == Int.MAX_VALUE) return null
+
+        val idx = topList.indexOfFirst {
+            it.username.trim().equals(u, ignoreCase = true) &&
+                    it.completeTimeSeconds == bestSeconds
         }
-
-        if (idxByUser < 0) {
-            // ✅ 你不在 Top10：不要估算全服排名
-            return "Not in Top 10" to null
-        }
-
-        val serverBest = topList[idxByUser].completeTimeSeconds
-        val rank = "#${idxByUser + 1}"
-
-        // ✅ 如果本次不是 best，明确说明 best 是多少（避免误会“没提交”）
-        val note = if (latestScore <= serverBest) {
-            "(best)"
-        } else {
-            "(best ${formatHMS(serverBest)})"
-        }
-
-        return "$rank $note" to serverBest
+        return if (idx in 0..9) idx + 1 else null
     }
 
     private fun appendStatus(extra: String) {
@@ -250,9 +253,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     private fun consumeThisRunOnce() {
-        prefs.edit()
-            .putBoolean(KEY_LAST_RUN_PENDING, false)
-            .apply()
+        prefs.edit().putBoolean(KEY_LAST_RUN_PENDING, false).apply()
     }
 
     private fun formatHMS(totalSeconds: Int): String {
