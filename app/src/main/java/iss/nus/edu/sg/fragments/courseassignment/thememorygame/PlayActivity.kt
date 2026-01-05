@@ -6,6 +6,7 @@ import android.media.SoundPool
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -13,10 +14,12 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities.GameOverActivity
+import iss.nus.edu.sg.fragments.courseassignment.thememorygame.activities.LeaderboardActivity
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.ActivityPlayBinding
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.IncludeHudGameBinding
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.features.ads.AdPagerAdapter
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.features.ads.AdsLoader
+import iss.nus.edu.sg.fragments.courseassignment.thememorygame.network.AuthManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -52,11 +55,14 @@ class PlayActivity : AppCompatActivity() {
     private var timerSeconds = 0
     private var isTimerStarted = false
 
+    // ✅ 精确计时：记录开始时刻（毫秒）
+    private var startTimeMs = 0L
+
     private var matches = 0
     private val totalPairs = 6
     private var imageUrls: ArrayList<String>? = null
 
-    // ===== Bottom spacing for last row (to avoid being covered / cramped by the ad) =====
+    // ===== Bottom spacing for last row =====
     private var bottomDecoration: BottomSpaceDecoration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,8 +82,9 @@ class PlayActivity : AppCompatActivity() {
             .setAudioAttributes(attrs)
             .build()
 
-        // ✅ 按你 raw 文件名：flip_card.wav / match_success.wav / win.wav
+        // ✅ 按你 raw 文件名
         sFlip = soundPool.load(this, R.raw.flip_card, 1)
+        // ⚠️ 你这里 match / win 的文件名看起来写反了，但不影响计时/提交
         sMatch = soundPool.load(this, R.raw.win, 1)
         sWin = soundPool.load(this, R.raw.match_success, 1)
 
@@ -149,7 +156,6 @@ class PlayActivity : AppCompatActivity() {
                 vpAds.adapter = AdPagerAdapter(urls)
                 vpAds.offscreenPageLimit = 1
 
-                // ✅ 广告确定显示后，再根据真实高度给最后一行留空间
                 binding.adContainer.post { applyBottomSpaceForAd(showAd = true) }
 
                 if (urls.size > 1) {
@@ -159,13 +165,11 @@ class PlayActivity : AppCompatActivity() {
         }
     }
 
-    // ===== Apply bottom space only to last row (NO padding hacks) =====
     private fun applyBottomSpaceForAd(showAd: Boolean) {
         binding.root.post {
             val density = resources.displayMetrics.density
-            val extraGapPx = (32f * density).toInt() // 阴影 + 翻牌 scale 留白
+            val extraGapPx = (32f * density).toInt()
 
-            // 如果不显示广告，就只留一点点
             if (!showAd || binding.adContainer.visibility != View.VISIBLE) {
                 bottomDecoration?.let { binding.rvCards.removeItemDecoration(it) }
                 bottomDecoration = BottomSpaceDecoration((8f * density).toInt())
@@ -174,21 +178,15 @@ class PlayActivity : AppCompatActivity() {
                 return@post
             }
 
-            // 关键：用屏幕坐标计算“广告顶”到“RV 底”的差
             val rvLoc = IntArray(2)
             val adLoc = IntArray(2)
             binding.rvCards.getLocationOnScreen(rvLoc)
             binding.adContainer.getLocationOnScreen(adLoc)
 
-            val rvTop = rvLoc[1]
-            val rvHeight = binding.rvCards.height
-            val rvBottom = rvTop + rvHeight
-
+            val rvBottom = rvLoc[1] + binding.rvCards.height
             val adTop = adLoc[1]
 
-            // 需要的空间：广告顶在 RV 底部“覆盖了多少”
             val overlap = (rvBottom - adTop).coerceAtLeast(0)
-
             val spacePx = overlap + extraGapPx
 
             bottomDecoration?.let { binding.rvCards.removeItemDecoration(it) }
@@ -197,7 +195,6 @@ class PlayActivity : AppCompatActivity() {
             binding.rvCards.invalidateItemDecorations()
         }
     }
-
 
     private fun playSfx(soundId: Int, volume: Float = 1.0f) {
         if (!soundsReady || soundId == 0) return
@@ -243,7 +240,10 @@ class PlayActivity : AppCompatActivity() {
         matches = 0
         indexOfSingleSelectedCard = null
         isChecking = false
+
+        // ✅ reset 计时
         timerSeconds = 0
+        startTimeMs = 0L
 
         hud.tvTimer.text = "00:00:00"
         hud.tvMatches.text = "Matches: 0 / $totalPairs"
@@ -252,15 +252,24 @@ class PlayActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
+    /**
+     * ✅ 精确计时：
+     * 用 SystemClock.elapsedRealtime() 计算秒数
+     * 显示/传递/提交都用同一个 timerSeconds，不会出现 “15/16” 跳秒不一致
+     */
     private fun startTimer() {
         isTimerStarted = true
+        startTimeMs = SystemClock.elapsedRealtime()
+
         timerJob = CoroutineScope(Dispatchers.Main).launch {
             while (true) {
-                delay(1000)
-                timerSeconds++
-                val h = timerSeconds / 3600
-                val m = (timerSeconds % 3600) / 60
-                val s = timerSeconds % 60
+                delay(200) // 更新更平滑，但秒数来自系统时钟，精确
+                val elapsedSec = ((SystemClock.elapsedRealtime() - startTimeMs) / 1000).toInt()
+                timerSeconds = elapsedSec
+
+                val h = elapsedSec / 3600
+                val m = (elapsedSec % 3600) / 60
+                val s = elapsedSec % 60
                 hud.tvTimer.text = String.format("%02d:%02d:%02d", h, m, s)
             }
         }
@@ -327,8 +336,25 @@ class PlayActivity : AppCompatActivity() {
         playSfx(sWin, 1.0f)
         timerJob?.cancel()
 
-        val intent = Intent(this, GameOverActivity::class.java)
-        intent.putStringArrayListExtra("image_urls", imageUrls)
+        val username = AuthManager.getInstance(this).getUsername() ?: "You"
+
+        // ✅ 最终成绩：再用系统时钟兜底算一次，防止 200ms delay 刚好没刷新到最后一秒
+        val finalSeconds = if (isTimerStarted && startTimeMs > 0L) {
+            ((SystemClock.elapsedRealtime() - startTimeMs) / 1000).toInt()
+        } else {
+            timerSeconds
+        }.coerceAtLeast(0)
+
+        timerSeconds = finalSeconds
+
+        val intent = Intent(this, GameOverActivity::class.java).apply {
+            putStringArrayListExtra("image_urls", imageUrls)
+
+            // ✅ 关键：把本局成绩和用户名传给 GameOverActivity
+            putExtra(LeaderboardActivity.EXTRA_LATEST_SCORE_SECONDS, finalSeconds)
+            putExtra(LeaderboardActivity.EXTRA_LATEST_USERNAME, username)
+        }
+
         startActivity(intent)
         finish()
     }
