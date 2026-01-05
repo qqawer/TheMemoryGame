@@ -109,10 +109,18 @@ object AdsLoader {
 
     private fun toFullUrl(pathOrUrl: String): String {
         val s = pathOrUrl.trim()
-        if (s.startsWith("http://") || s.startsWith("https://")) return s
-        val p = if (s.startsWith("/")) s else "/$s"
-        return BASE_URL + p
+        val raw = if (s.startsWith("http://") || s.startsWith("https://")) {
+            s
+        } else {
+            val p = if (s.startsWith("/")) s else "/$s"
+            BASE_URL + p
+        }
+
+        // 👇 强制刷新广告图（开发阶段）
+        val sep = if (raw.contains("?")) "&" else "?"
+        return raw + "${sep}v=20260105"
     }
+
 
     /**
      * Calls GET /api/Ad/active

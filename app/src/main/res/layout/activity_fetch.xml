@@ -35,11 +35,13 @@
                 android:layout_height="36dp"
                 android:background="@drawable/bg_hud_icon_button"
                 android:src="@drawable/ic_arrow_back"
+                app:tint="#E9D9A6"
                 android:contentDescription="Back"
                 android:padding="8dp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent" />
+
 
             <!-- Confirm：保留原 id（微调 padding，让它更像徽章且不挤标题） -->
             <Button

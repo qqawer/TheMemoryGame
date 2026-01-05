@@ -280,9 +280,17 @@ class PlayActivity : AppCompatActivity() {
 
         val urls = imageUrls ?: return
         var id = 0
-        val cards = (urls + urls).map { MemoryCard(id++, it) }.shuffled()
-        memoryCards = cards.toMutableList()
+        val newCards = (urls + urls).map { MemoryCard(id++, it) }.shuffled()
+
+        if (::memoryCards.isInitialized) {
+            // ✅ 关键：不换引用，原地更新
+            memoryCards.clear()
+            memoryCards.addAll(newCards)
+        } else {
+            memoryCards = newCards.toMutableList()
+        }
     }
+
 
     private fun onCardClicked(position: Int) {
         if (isChecking) return
