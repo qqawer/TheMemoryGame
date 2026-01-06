@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- 🎮 游戏 HUD（替代 Toolbar + Timer + Matches） -->
+    <!-- 🎮 Game HUD (replaces Toolbar + Timer + Matches) -->
     <include
         android:id="@+id/hudGame"
         layout="@layout/include_hud_game"
@@ -14,7 +14,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- 🃏 卡牌区 -->
+    <!-- 🃏 Card area -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCards"
         android:layout_width="0dp"
@@ -29,7 +29,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- ✅ 底部占位：高度=广告高度+margin，保证RV永远不会画到广告区域 -->
+    <!-- ✅ Bottom placeholder: height = ad height + margin, ensuring RV never draws into the ad area -->
     <View
         android:id="@+id/adSpacer"
         android:layout_width="0dp"
@@ -38,7 +38,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
-    <!-- 📢 底部广告条 -->
+    <!-- 📢 Bottom ad bar -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/adContainer"
         android:layout_width="0dp"

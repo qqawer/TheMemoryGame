@@ -64,7 +64,7 @@ class LeaderboardActivity : AppCompatActivity() {
         pb = findViewById(R.id.pbLoading)
         tvStatus = findViewById(R.id.tvStatus)
 
-        // ✅ New bottom card views (from your updated XML)
+        // New bottom card views (from your updated XML)
         resultCard = findViewById(R.id.resultCard)
         tvThisRunValue = findViewById(R.id.tvThisRunValue)
         tvYourBestValue = findViewById(R.id.tvYourBestValue)
@@ -116,7 +116,8 @@ class LeaderboardActivity : AppCompatActivity() {
             )
 
             if (shouldShowHeader) {
-                // 先用本地 best 占位（等拉到榜单再用服务器 best 校准）
+                // First use the local best placeholder (to be calibrated with the server best once pulled into the rankings).
+
                 val bestLocal = getLocalBestSeconds(latestUser, latestScore)
                 showBottomResultCard(latestScore, bestLocal, bestRankWithin10 = null)
             }
@@ -164,7 +165,7 @@ class LeaderboardActivity : AppCompatActivity() {
                         if (shouldShowHeader) {
                             val bestLocal = getLocalBestSeconds(latestUser, latestScore)
 
-                            // ✅ 服务器 top10 里该用户最好成绩（有就拿来校准本地 best）
+                            // Top 10 user score
                             val bestServer = findBestForUserFromTop10(latestUser, list)
 
                             val unifiedBest = minOf(
@@ -172,12 +173,12 @@ class LeaderboardActivity : AppCompatActivity() {
                                 bestServer ?: Int.MAX_VALUE
                             )
 
-                            // ✅ 写回本地 best（避免“榜单 15s 但 best 还是 21s”）
+
                             if (unifiedBest != Int.MAX_VALUE) {
                                 saveBestSeconds(latestUser, unifiedBest)
                             }
 
-                            // ✅ 名次只跟 best 走：best 在 top10 且精确命中才显示 (#rank)
+                            // rank just follow the best
                             val bestRank = findExactRankWithin10(latestUser, unifiedBest, list)
 
                             showBottomResultCard(latestScore, unifiedBest, bestRankWithin10 = bestRank)
@@ -194,10 +195,10 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 底部卡片展示（契合你新的 UI 设计）
+     * Display for the bottom card (to match your new UI design).
      *
-     * This run: 永远不显示名次
-     * Your best: best 在 Top10 才显示名次 (#rank)
+     * This run: Never shows a rank.
+     * Your best: Shows rank (#rank) only if it's in the Top 10.
      */
     private fun showBottomResultCard(latestScore: Int, bestSeconds: Int, bestRankWithin10: Int?) {
         val runText = if (latestScore > 0) formatHMS(latestScore) else "N/A"
@@ -241,7 +242,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 从服务器 top10 里找该用户最好成绩（忽略大小写）
+     * Find the user's best score from the server's top 10 list (case-insensitive).
      */
     private fun findBestForUserFromTop10(username: String, topList: List<LeaderboardRow>): Int? {
         val u = username.trim()
@@ -253,7 +254,7 @@ class LeaderboardActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 只返回“能在当前 top10 列表里精确命中 best”的排名，否则 null
+     * Only return the rank if the 'best' score can be precisely matched within the current top 10 list, otherwise null.
      */
     private fun findExactRankWithin10(
         username: String,

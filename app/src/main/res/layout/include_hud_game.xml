@@ -10,7 +10,7 @@
     android:paddingStart="14dp"
     android:paddingEnd="14dp">
 
-    <!-- 顶部一行：返回 / 标题 / 重开 -->
+    <!-- Top row: Back / Title / Restart -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="40dp">
@@ -51,7 +51,7 @@
 
     </RelativeLayout>
 
-    <!-- 信息条：时间 / Matches -->
+    <!-- Info bar: Time / Matches -->
     <LinearLayout
         android:id="@+id/hudInfoBar"
         android:layout_width="match_parent"

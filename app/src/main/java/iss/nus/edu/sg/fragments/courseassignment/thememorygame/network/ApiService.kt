@@ -22,7 +22,7 @@ class ApiService {
         private const val TAG = "ApiService"
         private const val TIMEOUT = 10000
 
-        // ✅ 统一 endpoint 常量，彻底避免 Score/Scores 写错
+        // Standardize endpoint constants to completely avoid typos like Score/Scores
         const val ENDPOINT_LEADERBOARD = "Score/leaderboard"
         const val ENDPOINT_SUBMIT_SCORE = "Score/submit"
         const val ENDPOINT_LOGIN = "Auth/login"

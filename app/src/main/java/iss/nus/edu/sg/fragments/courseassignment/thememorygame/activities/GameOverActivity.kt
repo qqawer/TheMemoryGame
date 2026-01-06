@@ -7,7 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import iss.nus.edu.sg.fragments.courseassignment.thememorygame.PlayActivity
+import iss.nus.edu.sg.fragments.courseassignment.thememorygame.FetchActivity
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.databinding.ActivityGameOverBinding
 import iss.nus.edu.sg.fragments.courseassignment.thememorygame.network.AuthManager
 import kotlinx.coroutines.launch
@@ -40,20 +40,19 @@ class GameOverActivity : AppCompatActivity() {
 
         val auth = AuthManager.getInstance(this)
 
-        // ✅ username 优先用 intent（PlayActivity 已传）
+        // Prioritize username from intent (passed from PlayActivity)
         val username = intent.getStringExtra(LeaderboardActivity.EXTRA_LATEST_USERNAME)
             ?: auth.getUsername()
             ?: "You"
 
-        // ✅ 尽一切可能读到本局成绩（秒）
+        // Try everything to read the score (in seconds) for this round
         val latestScore = readLatestScoreSeconds(intent)
 
         Log.d(TAG, "incoming extras: latestScore=$latestScore username=$username")
 
         // 1) Restart
         binding.btnRestart.setOnClickListener {
-            val i = Intent(this, PlayActivity::class.java)
-            i.putStringArrayListExtra("image_urls", imageUrls)
+            val i = Intent(this, FetchActivity::class.java)
             i.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(i)
             finish()
@@ -68,16 +67,16 @@ class GameOverActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // ✅ 仍然允许进榜单，只是不显示 this run
+                // Still allow entering the leaderboard, just don't display "this run"
                 startActivity(Intent(this, LeaderboardActivity::class.java))
                 return@setOnClickListener
             }
 
-            // ✅ 有 score：保存 best + pending
+            // Has score: save best + pending
             saveThisRunAndBest(username, latestScore)
 
             lifecycleScope.launch {
-                // ✅ 登录才提交
+                // Submit only when logged in
                 if (auth.isLoggedIn()) {
                     val ok = auth.submitGameScore(latestScore)
                     if (!ok) {
@@ -95,7 +94,7 @@ class GameOverActivity : AppCompatActivity() {
                     ).show()
                 }
 
-                // ✅ 打开排行榜：带上 score & username，并标记 fromGameOver
+                // Open leaderboard: pass score & username, and mark as fromGameOver
                 val toLb = Intent(this@GameOverActivity, LeaderboardActivity::class.java)
                 toLb.putExtra(LeaderboardActivity.EXTRA_LATEST_SCORE_SECONDS, latestScore)
                 toLb.putExtra(LeaderboardActivity.EXTRA_LATEST_USERNAME, username)

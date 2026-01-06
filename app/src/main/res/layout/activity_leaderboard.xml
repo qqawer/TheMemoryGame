@@ -8,7 +8,7 @@
     android:background="@drawable/bg_screen_dark"
     android:padding="14dp">
 
-    <!-- 顶部 HUD（和 Fetch 同款） -->
+    <!-- Top HUD (same style as Fetch) -->
     <LinearLayout
         android:id="@+id/hudLeaderboard"
         android:layout_width="0dp"
@@ -58,7 +58,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- 状态条：error / empty / load failed -->
+        <!-- Status bar: error / empty / load failed -->
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
@@ -74,7 +74,7 @@
             android:visibility="gone"/>
     </LinearLayout>
 
-    <!-- ✅ 底部结果卡片：This run / Your best -->
+    <!-- ✅ Bottom result card: This run / Your best -->
     <LinearLayout
         android:id="@+id/resultCard"
         android:layout_width="0dp"

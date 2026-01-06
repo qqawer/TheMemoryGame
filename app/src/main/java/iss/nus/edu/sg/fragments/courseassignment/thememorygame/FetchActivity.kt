@@ -41,7 +41,7 @@ class FetchActivity : AppCompatActivity() {
         private const val MAX_SELECTION = 6
         private const val MAX_IMAGES = 20
 
-        // 更像真实浏览器的 UA（很多站会挡 “Mozilla” 这种过短 UA）
+        // A more realistic browser User-Agent (many sites block short UAs like "Mozilla")
         private const val UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
@@ -221,10 +221,10 @@ class FetchActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 更强的图片提取：
+     * More robust image extraction:
      * - img[src]
      * - img[data-src] / data-original / data-lazy-src
-     * - img[srcset] / source[srcset]（取 srcset 里的第一张）
+     * - img[srcset] / source[srcset] (takes the first one from srcset)
      */
     private suspend fun extractImageUrls(url: String): List<String> = withContext(Dispatchers.IO) {
         try {
@@ -238,13 +238,13 @@ class FetchActivity : AppCompatActivity() {
 
             val out = LinkedHashSet<String>()
 
-            // 1) 常规 img[src]
+            // 1) Regular img[src]
             doc.select("img[src]").forEach { el ->
                 val abs = el.absUrl("src").trim()
                 if (abs.startsWith("http")) out.add(abs)
             }
 
-            // 2) 懒加载 data-src / data-original / data-lazy-src
+            // 2) Lazy loading data-src / data-original / data-lazy-src
             listOf("data-src", "data-original", "data-lazy-src").forEach { attr ->
                 doc.select("img[$attr]").forEach { el ->
                     val abs = el.absUrl(attr).trim()
@@ -252,9 +252,9 @@ class FetchActivity : AppCompatActivity() {
                 }
             }
 
-            // 3) srcset（img 或 source）
+            // 3) srcset (img or source)
             fun pickFirstFromSrcset(srcset: String): String? {
-                // srcset 格式：url1 1x, url2 2x 或 url1 300w, url2 600w
+                // srcset format: url1 1x, url2 2x or url1 300w, url2 600w
                 val first = srcset.split(",")
                     .map { it.trim() }
                     .firstOrNull { it.isNotEmpty() }
@@ -268,14 +268,15 @@ class FetchActivity : AppCompatActivity() {
             doc.select("img[srcset]").forEach { el ->
                 val srcset = el.attr("srcset").trim()
                 val candidate = pickFirstFromSrcset(srcset) ?: return@forEach
-                val abs = el.absUrl("srcset").trim() // 有些站 absUrl("srcset") 不靠谱，所以下面补一手
+                // Some sites' absUrl("srcset") is unreliable, so here's a fallback
+                val abs = el.absUrl("srcset").trim()
                 if (abs.startsWith("http")) out.add(abs) else if (candidate.startsWith("http")) out.add(candidate)
             }
 
             doc.select("source[srcset]").forEach { el ->
                 val candidate = pickFirstFromSrcset(el.attr("srcset").trim()) ?: return@forEach
                 val abs = try {
-                    // source 没有 absUrl 对 srcset 的好支持，手动处理相对路径
+                    // source doesn't have good absUrl support for srcset, handle relative paths manually
                     URL(URL(url), candidate).toString()
                 } catch (_: Exception) {
                     candidate
@@ -319,7 +320,7 @@ class FetchActivity : AppCompatActivity() {
 
     private fun navigateToPlayActivity() {
         val intent = Intent(this, PlayActivity::class.java)
-        // ✅ 修正 Key 为 "image_urls"，并使用 ArrayList<String> 以匹配 PlayActivity 的接收逻辑
+        // Corrected the key to "image_urls" and using ArrayList<String> to match PlayActivity's receiving logic
         val selectedImages = ArrayList(imageAdapter.getSelectedImages())
         intent.putStringArrayListExtra("image_urls", selectedImages)
         startActivity(intent)

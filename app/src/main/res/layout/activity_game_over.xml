@@ -7,7 +7,7 @@
     android:background="@drawable/bg_screen_dark"
     android:padding="14dp">
 
-    <!-- 顶部 HUD（复用 Fetch 的质感） -->
+    <!-- Top HUD (reusing the texture from Fetch) -->
     <LinearLayout
         android:id="@+id/hudGameOver"
         android:layout_width="0dp"
@@ -46,7 +46,7 @@
 
     </LinearLayout>
 
-    <!-- 中间按钮区：卡牌面板 -->
+    <!-- Center button area: card panel -->
     <LinearLayout
         android:id="@+id/panelActions"
         android:layout_width="0dp"

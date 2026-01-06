@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     private fun showLoggedOutUI() {
         layoutUserInfo.visibility = View.GONE
 
-        // ✅ 未登录：要显示登录按钮
+        // Not logged in: show the login button
         btnLoginPrompt.visibility = View.GONE
 
         btnLogout.visibility = View.GONE
@@ -150,13 +150,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun navigateToGame() {
         Toast.makeText(this, "Entering game...", Toast.LENGTH_SHORT).show()
-        // 你们项目目前是 FetchActivity 负责下载图片/进入游戏流程
+        // Your project currently uses FetchActivity to handle image downloading/game entry flow
         startActivity(Intent(this, FetchActivity::class.java))
     }
 
     private fun navigateToLeaderboard() {
         Toast.makeText(this, "Opening leaderboard...", Toast.LENGTH_SHORT).show()
-        // ✅ 关键修复：这里必须打开 LeaderboardActivity，而不是 FetchActivity
+        // Key fix: Must open LeaderboardActivity here, not FetchActivity
         startActivity(Intent(this, LeaderboardActivity::class.java))
     }
 }

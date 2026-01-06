@@ -13,12 +13,12 @@ import iss.nus.edu.sg.fragments.courseassignment.thememorygame.network.LoginResu
 import kotlinx.coroutines.launch
 
 /**
- * Login Activity - English Version
+ * Login Activity.
  * 
  * Modifications:
- * 1. ✅ Added back button functionality
- * 2. ✅ Click back button to return to MainActivity
- * 3. ✅ After successful login, return to MainActivity (MainActivity will auto-refresh UI)
+ * 1. Added back button functionality.
+ * 2. Click back button to return to MainActivity.
+ * 3. After successful login, return to MainActivity (MainActivity will auto-refresh UI).
  * 
  * File path:
  * app/src/main/java/iss/nus/edu/sg/fragments/courseassignment/thememorygame/activities/LoginActivity.kt
@@ -38,7 +38,7 @@ class LoginActivity : AppCompatActivity() {
         // Initialize AuthManager
         authManager = AuthManager.getInstance(this)
         
-        // ✅ New: Setup back button click listener
+        // Setup back button click listener
         binding.btnBack.setOnClickListener {
             handleBackPressed()
         }
@@ -48,7 +48,7 @@ class LoginActivity : AppCompatActivity() {
             performLogin()
         }
         
-        // ✅ Modified: Allow user to return to main screen
+        // Allow user to return to main screen
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 handleBackPressed()
@@ -57,7 +57,7 @@ class LoginActivity : AppCompatActivity() {
     }
     
     /**
-     * ✅ New: Handle back button press
+     * Handle back button press.
      */
     private fun handleBackPressed() {
         // Return to main screen directly
@@ -65,7 +65,7 @@ class LoginActivity : AppCompatActivity() {
     }
     
     /**
-     * Perform login operation
+     * Perform login operation.
      */
     private fun performLogin() {
         val username = binding.etUsername.text.toString().trim()
@@ -91,12 +91,12 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = authManager.login(username, password)) {
                 is LoginResult.Success -> {
-                    // ✅ Login successful
+                    // Login successful
                     handleLoginSuccess(result)
                 }
                 
                 is LoginResult.Error -> {
-                    // ❌ Login failed
+                    // Login failed
                     handleLoginError(result.message)
                 }
             }
@@ -104,7 +104,7 @@ class LoginActivity : AppCompatActivity() {
     }
     
     /**
-     * ✅ New: Handle login success
+     * Handle login success.
      */
     private fun handleLoginSuccess(result: LoginResult.Success) {
         // Show welcome message
@@ -121,7 +121,7 @@ class LoginActivity : AppCompatActivity() {
     }
     
     /**
-     * ✅ New: Handle login error
+     * Handle login error.
      */
     private fun handleLoginError(message: String) {
         setLoadingState(false)
@@ -138,11 +138,11 @@ class LoginActivity : AppCompatActivity() {
     }
     
     /**
-     * Set loading state
+     * Set loading state.
      */
     private fun setLoadingState(isLoading: Boolean) {
         binding.apply {
-            // ✅ Modified: Disable back button while loading
+            // Disable back button while loading
             btnBack.isEnabled = !isLoading
             btnLogin.isEnabled = !isLoading
             etUsername.isEnabled = !isLoading

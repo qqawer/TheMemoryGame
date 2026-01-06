@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- ① 底色：深炭黑 -->
+    <!-- ① Base color: deep charcoal black -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="#0E0C10"/>
         </shape>
     </item>
 
-    <!-- ② 金属纵向渐变 -->
+    <!-- ② Metal vertical gradient -->
     <item>
         <shape android:shape="rectangle">
             <gradient
@@ -19,7 +19,7 @@
         </shape>
     </item>
 
-    <!-- ③ 顶部细高光（让它“有面”） -->
+    <!-- ③ Thin top highlight (to give it a "face") -->
     <item android:top="0dp">
         <shape android:shape="rectangle">
             <size android:height="2dp"/>
@@ -27,7 +27,7 @@
         </shape>
     </item>
 
-    <!-- ④ 底部暗边（让它“有厚度”） -->
+    <!-- ④ Bottom dark edge (to give it "thickness") -->
     <item android:bottom="0dp">
         <shape android:shape="rectangle">
             <size android:height="3dp"/>

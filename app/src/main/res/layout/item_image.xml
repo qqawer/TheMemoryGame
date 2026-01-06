@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:padding="6dp">
 
-    <!-- 卡槽 -->
+    <!-- Card slot -->
     <FrameLayout
         android:id="@+id/itemRoot"
         android:layout_width="match_parent"
@@ -12,7 +12,7 @@
         android:background="@drawable/bg_card_slot_front"
         android:padding="6dp">
 
-        <!-- 图片 -->
+        <!-- Image -->
         <ImageView
             android:id="@+id/ivImage"
             android:layout_width="match_parent"
@@ -20,7 +20,7 @@
             android:scaleType="centerCrop"
             android:background="@android:color/transparent" />
 
-        <!-- ✅ 未选弱化蒙层：默认显示，通过 alpha 控制强弱 -->
+        <!-- ✅ Unselected dimming overlay: displayed by default, strength controlled by alpha -->
         <View
             android:id="@+id/vOverlay"
             android:layout_width="match_parent"
@@ -28,7 +28,7 @@
             android:background="#99000000"
             android:alpha="0.42" />
 
-        <!-- ✅ 选中描边（新增） -->
+        <!-- ✅ Selected stroke (new) -->
         <View
             android:id="@+id/vBorder"
             android:layout_width="match_parent"
@@ -36,7 +36,7 @@
             android:background="@drawable/bg_selected_border"
             android:alpha="0" />
 
-        <!-- （保留旧 id，避免你历史逻辑崩；但以后不用它） -->
+        <!-- (Keep the old id to avoid breaking historical logic; but it will not be used in the future) -->
         <TextView
             android:id="@+id/tvCheckMark"
             android:layout_width="34dp"
@@ -46,7 +46,7 @@
             android:background="@drawable/bg_select_badge"
             android:visibility="gone" />
 
-        <!-- ✅ 选中标识：居中显示 -->
+        <!-- ✅ Selected indicator: centered -->
         <ImageView
             android:id="@+id/ivCheckGold"
             android:layout_width="34dp"

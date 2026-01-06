@@ -52,7 +52,7 @@ class AuthManager(context: Context) {
 
         Log.d(TAG, "Attempting login for user: $username")
 
-        // ✅ 用常量 endpoint
+        // Use constant endpoint
         val endpoint = "/${ApiService.ENDPOINT_LOGIN}"
 
         return when (val response = apiService.post(endpoint, requestBody)) {
@@ -107,8 +107,8 @@ class AuthManager(context: Context) {
     }
 
     /**
-     * ✅ 提交成绩：只要 HTTP 成功（ApiResponse.Success），就当提交成功
-     * 不再用 JSON 里的 code 二次误判
+     * Submit score: as long as the HTTP request is successful (ApiResponse.Success), consider it submitted successfully.
+     * Do not misinterpret the code in the JSON for a second time.
      */
     suspend fun submitGameScore(completionTimeSeconds: Int): Boolean {
         val token = getToken()

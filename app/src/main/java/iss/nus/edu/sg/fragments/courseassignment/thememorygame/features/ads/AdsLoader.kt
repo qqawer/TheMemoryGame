@@ -22,13 +22,13 @@ object AdsLoader {
     private const val ENDPOINT = "/api/Ad/active"
 
     /**
-     * 广告实体：供轮播/单图两种模式共用
-     * imageUrl 最终会被转成可直接加载的完整 URL（toFullUrl）
+     * Ad entity: for both carousel/single image modes.
+     * imageUrl will eventually be converted to a full URL that can be loaded directly (toFullUrl).
      */
     data class Ad(val title: String, val imageUrl: String)
 
     /**
-     * 轮播推荐用：拉取 active ads 列表（主线程回调）
+     * Recommended for carousel: fetch active ads list (callback on the main thread).
      */
     fun fetchActiveAds(activity: Activity, onResult: (List<Ad>) -> Unit) {
         val prefs = activity.getSharedPreferences("MemoryGamePrefs", Activity.MODE_PRIVATE)
@@ -41,8 +41,8 @@ object AdsLoader {
     }
 
     /**
-     * 兼容旧用法：如果布局里存在 ivAd，就加载第一条广告图。
-     * 如果你已经改成 ViewPager2(vpAds)，那它会检测不到 ivAd 并自动跳过（不崩）。
+     * For backward compatibility: if ivAd exists in the layout, load the first ad image.
+     * If you have changed to ViewPager2(vpAds), it will not detect ivAd and will skip automatically (without crashing).
      *
      * Paid users -> hide ad container.
      */
@@ -65,7 +65,7 @@ object AdsLoader {
             adContainer.visibility = View.VISIBLE
         }
 
-        // 旧布局：ivAd
+        // Old layout: ivAd
         val imageId = activity.resources.getIdentifier("ivAd", "id", activity.packageName)
         if (imageId == 0) {
             Log.d(TAG, "ivAd not found in layout. (Maybe using ViewPager2) Skip single-image load.")
@@ -74,7 +74,7 @@ object AdsLoader {
 
         val ivAd = root.findViewById<ImageView>(imageId)
 
-        // title/status 可选
+        // title/status optional
         val titleId = activity.resources.getIdentifier("tvAdTitle", "id", activity.packageName)
         val statusId = activity.resources.getIdentifier("tvAdStatus", "id", activity.packageName)
         val tvTitle = if (titleId != 0) root.findViewById<TextView>(titleId) else null
@@ -116,7 +116,7 @@ object AdsLoader {
             BASE_URL + p
         }
 
-        // 👇 强制刷新广告图（开发阶段）
+        // 👇 Force refresh ad image (during development)
         val sep = if (raw.contains("?")) "&" else "?"
         return raw + "${sep}v=20260105"
     }

@@ -55,7 +55,7 @@ class PlayActivity : AppCompatActivity() {
     private var timerSeconds = 0
     private var isTimerStarted = false
 
-    // ✅ 精确计时：记录开始时刻（毫秒）
+    // For accurate timing: record the start time in milliseconds
     private var startTimeMs = 0L
 
     private var matches = 0
@@ -82,9 +82,9 @@ class PlayActivity : AppCompatActivity() {
             .setAudioAttributes(attrs)
             .build()
 
-        // ✅ 按你 raw 文件名
+        // As per your raw filenames
         sFlip = soundPool.load(this, R.raw.flip_card, 1)
-        // ⚠️ 你这里 match / win 的文件名看起来写反了，但不影响计时/提交
+        // The filenames for match/win seem to be swapped, but this doesn't affect timing/submission.
         sMatch = soundPool.load(this, R.raw.win, 1)
         sWin = soundPool.load(this, R.raw.match_success, 1)
 
@@ -98,7 +98,7 @@ class PlayActivity : AppCompatActivity() {
         hud.btnBack.setOnClickListener { finish() }
         hud.btnRestart.setOnClickListener { restartGame() }
 
-        // ===== Game Images =====
+        // =====Test Game Images =====
         imageUrls = intent.getStringArrayListExtra("image_urls")
         if (imageUrls == null || imageUrls!!.size < totalPairs) {
             Toast.makeText(
@@ -126,7 +126,7 @@ class PlayActivity : AppCompatActivity() {
         binding.rvCards.layoutManager = GridLayoutManager(this, 3)
         binding.rvCards.adapter = adapter
 
-        // 避免 RV 默认动画干扰翻牌
+        // Prevent default RV animation from interfering with card flips
         (binding.rvCards.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)
             ?.supportsChangeAnimations = false
         binding.rvCards.itemAnimator?.changeDuration = 0
@@ -241,7 +241,7 @@ class PlayActivity : AppCompatActivity() {
         indexOfSingleSelectedCard = null
         isChecking = false
 
-        // ✅ reset 计时
+        // reset timer
         timerSeconds = 0
         startTimeMs = 0L
 
@@ -253,9 +253,9 @@ class PlayActivity : AppCompatActivity() {
     }
 
     /**
-     * ✅ 精确计时：
-     * 用 SystemClock.elapsedRealtime() 计算秒数
-     * 显示/传递/提交都用同一个 timerSeconds，不会出现 “15/16” 跳秒不一致
+     * For accurate timing:
+     * Use SystemClock.elapsedRealtime() to calculate seconds.
+     * The same timerSeconds is used for display/passing/submission, so there won't be inconsistencies like "15/16" seconds.
      */
     private fun startTimer() {
         isTimerStarted = true
@@ -263,7 +263,7 @@ class PlayActivity : AppCompatActivity() {
 
         timerJob = CoroutineScope(Dispatchers.Main).launch {
             while (true) {
-                delay(200) // 更新更平滑，但秒数来自系统时钟，精确
+                delay(200) // Smoother updates, but the seconds are from the system clock for accuracy.
                 val elapsedSec = ((SystemClock.elapsedRealtime() - startTimeMs) / 1000).toInt()
                 timerSeconds = elapsedSec
 
@@ -283,7 +283,7 @@ class PlayActivity : AppCompatActivity() {
         val newCards = (urls + urls).map { MemoryCard(id++, it) }.shuffled()
 
         if (::memoryCards.isInitialized) {
-            // ✅ 关键：不换引用，原地更新
+            // Key: Don't replace the reference, update in-place.
             memoryCards.clear()
             memoryCards.addAll(newCards)
         } else {
@@ -346,7 +346,7 @@ class PlayActivity : AppCompatActivity() {
 
         val username = AuthManager.getInstance(this).getUsername() ?: "You"
 
-        // ✅ 最终成绩：再用系统时钟兜底算一次，防止 200ms delay 刚好没刷新到最后一秒
+        // Final score: Recalculate using the system clock as a fallback to prevent the 200ms delay from missing the last second.
         val finalSeconds = if (isTimerStarted && startTimeMs > 0L) {
             ((SystemClock.elapsedRealtime() - startTimeMs) / 1000).toInt()
         } else {
@@ -358,7 +358,7 @@ class PlayActivity : AppCompatActivity() {
         val intent = Intent(this, GameOverActivity::class.java).apply {
             putStringArrayListExtra("image_urls", imageUrls)
 
-            // ✅ 关键：把本局成绩和用户名传给 GameOverActivity
+            // Key: Pass the score and username of this round to GameOverActivity.
             putExtra(LeaderboardActivity.EXTRA_LATEST_SCORE_SECONDS, finalSeconds)
             putExtra(LeaderboardActivity.EXTRA_LATEST_USERNAME, username)
         }

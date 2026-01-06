@@ -21,15 +21,15 @@ class MemoryCardAdapter(
     }
 
     /**
-     * 默认 bind：不播动画，避免 RecyclerView 复用导致乱飞
+     * Default bind: no animation to avoid issues with RecyclerView recycling.
      */
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(cards[position], animateFlip = false, playMatchEffect = false)
     }
 
     /**
-     * 带 payload 的 bind：强制执行某种动画（flip / flip_back / match）
-     * 你需要在 PlayActivity 里用 notifyItemChanged(pos, "flip") 等方式触发
+     * Bind with payload: forces a specific animation (flip / flip_back / match).
+     * You need to trigger this from PlayActivity using notifyItemChanged(pos, "flip").
      */
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         if (payloads.isEmpty()) {
@@ -53,7 +53,7 @@ class MemoryCardAdapter(
         private var isAnimating = false
 
         init {
-            // 3D 纵深：没有这个 rotationY 会很“扁”甚至变形怪
+            // 3D depth: without this, rotationY would look "flat" or even distorted.
             val density = binding.root.resources.displayMetrics.density
             binding.cardContainer.cameraDistance = 8000f * density
 
@@ -62,7 +62,7 @@ class MemoryCardAdapter(
                 if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
 
                 val card = cards[pos]
-                // 动画中/已匹配不让点，避免连点造成状态错乱
+                // Don't allow clicks during animation or if matched, to prevent state corruption from rapid clicks.
                 if (isAnimating || card.isMatched) return@setOnClickListener
 
                 onCardClicked(pos)
@@ -72,7 +72,7 @@ class MemoryCardAdapter(
         fun bind(card: MemoryCard, animateFlip: Boolean, playMatchEffect: Boolean) {
             val shouldShowFront = card.isFaceUp || card.isMatched
 
-            // 1) 先准备正面图（避免翻过去一瞬间空白）
+            // 1) First, prepare the front image to avoid a blank flash during the flip.
             if (card.contentSource is String) {
                 Glide.with(binding.ivFront.context)
                     .load(card.contentSource)
@@ -81,23 +81,23 @@ class MemoryCardAdapter(
                 binding.ivFront.setImageResource(card.contentSource as Int)
             }
 
-            // 2) 背面图（你可以换成更精致的卡背 drawable）
-            // 如果你没做 card_back_placeholder，就先用 ic_card_back
+            // 2) Back image (you can replace this with a more refined card back drawable).
+            // If you haven't created card_back_placeholder, use ic_card_back for now.
             val backRes = runCatching { R.drawable.card_back_placeholder }.getOrElse { R.drawable.ic_card_back }
             binding.ivBack.setImageResource(backRes)
 
-            // 3) 匹配遮罩（先保留勾，后面可以换成徽章/符文）
+            // 3) Match overlay (keeping the checkmark for now, can be replaced with a badge/rune later).
             binding.ivCheckMark.visibility = if (card.isMatched) View.VISIBLE else View.GONE
             binding.viewMatchedGlow.visibility = if (card.isMatched) View.VISIBLE else View.GONE
             binding.viewMatchedDim.visibility = if (card.isMatched) View.VISIBLE else View.GONE
             binding.viewCheckGlow.visibility = if (card.isMatched) View.VISIBLE else View.GONE
 
             if (!animateFlip) {
-                // 不播动画：直接同步正反面（防 RecyclerView 复用导致显示错）
+                // No animation: directly sync the front/back state (to prevent display errors due to RecyclerView recycling).
                 setFaceState(shouldShowFront)
                 resetTransforms()
             } else {
-                // 播翻牌动画：强制执行（不靠“检测状态变化”）
+                // Play flip animation: force execution (not relying on "detecting state change").
                 animateFlip(toShowFront = shouldShowFront) {
                     if (playMatchEffect && card.isMatched) {
                         playMatchedEffect()
@@ -125,7 +125,7 @@ class MemoryCardAdapter(
             val ctx = binding.root.context
             val container = binding.cardContainer
 
-            // 蓄力：轻微放大（力量感）
+            // Wind-up: slightly scale up (for a sense of power).
             container.animate().cancel()
             container.scaleX = 1f
             container.scaleY = 1f
@@ -144,12 +144,12 @@ class MemoryCardAdapter(
 
             flipOut.addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    // 90° 处切面
+                    // Switch faces at the 90° point.
                     setFaceState(toShowFront)
 
                     flipIn.addListener(object : AnimatorListenerAdapter() {
                         override fun onAnimationEnd(animation: Animator) {
-                            // 回弹落地
+                            // Bounce back to final state.
                             container.animate()
                                 .scaleX(1f)
                                 .scaleY(1f)
@@ -169,7 +169,7 @@ class MemoryCardAdapter(
         }
 
         private fun playMatchedEffect() {
-            // 匹配成功：回弹 + “稳重”一点的冲击感
+            // Match success: bounce back + a more "solid" impact feel.
             val container = binding.cardContainer
             container.animate().cancel()
             container.animate()

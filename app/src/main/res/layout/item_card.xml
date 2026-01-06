@@ -8,20 +8,20 @@
     android:clipToPadding="false"
     android:foreground="@drawable/fg_card_press_edge">
 
-    <!-- 外阴影 + 实体厚度：这里决定卡牌“整体尺寸” -->
+    <!-- Outer shadow + entity thickness: this determines the card's "overall size" -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="155dp"
         android:background="@drawable/bg_card_shadow"
         android:padding="5dp">
 
-        <!-- 金属框 -->
+        <!-- Metal frame -->
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/bg_card_border_gold" />
 
-        <!-- ================= 背面 ================= -->
+        <!-- ================= Back side ================= -->
         <FrameLayout
             android:id="@+id/viewBack"
             android:layout_width="match_parent"
@@ -62,7 +62,7 @@
                 android:alpha="0.70" />
         </FrameLayout>
 
-        <!-- ================= 正面 ================= -->
+        <!-- ================= Front side ================= -->
         <FrameLayout
             android:id="@+id/viewFront"
             android:layout_width="match_parent"
