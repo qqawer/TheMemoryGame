@@ -40,6 +40,15 @@ class AuthManager(context: Context) {
         Log.d(TAG, "User logged out")
     }
 
+    private fun parseErrorMessage(errorBody: String): String {
+        return try {
+            val json = JSONObject(errorBody)
+            json.optString("message", errorBody)
+        } catch (e: Exception) {
+            errorBody
+        }
+    }
+
     suspend fun login(username: String, password: String): LoginResult {
         if (username.isBlank() || password.isBlank()) {
             return LoginResult.Error("Username and password cannot be empty")
@@ -91,12 +100,8 @@ class AuthManager(context: Context) {
 
             is ApiResponse.Error -> {
                 Log.e(TAG, "Login failed: ${response.code} ${response.message}")
-                when (response.code) {
-                    401 -> LoginResult.Error("Invalid username or password")
-                    404 -> LoginResult.Error("User not found")
-                    500 -> LoginResult.Error("Server error, please try again later")
-                    else -> LoginResult.Error("Login failed: ${response.message}")
-                }
+                val parsedMessage = parseErrorMessage(response.message)
+                LoginResult.Error(parsedMessage.ifBlank { "Login failed with code ${response.code}" })
             }
 
             is ApiResponse.Exception -> {
