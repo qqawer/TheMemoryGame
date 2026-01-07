@@ -51,7 +51,7 @@
 
     </RelativeLayout>
 
-    <!-- Info bar: Time / Matches -->
+    <!-- Info bar: Matches / Time -->
     <LinearLayout
         android:id="@+id/hudInfoBar"
         android:layout_width="match_parent"
@@ -63,23 +63,24 @@
         android:paddingEnd="12dp">
 
         <TextView
-            android:id="@+id/tvTimer"
+            android:id="@+id/tvMatches"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="00:00:00"
+            android:text="Matches: 0 / 6"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#D6C28A" />
 
         <TextView
-            android:id="@+id/tvMatches"
+            android:id="@+id/tvTimer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Matches: 0 / 6"
+            android:text="00:00:00"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#D6C28A" />
+            
     </LinearLayout>
 
 </LinearLayout>
